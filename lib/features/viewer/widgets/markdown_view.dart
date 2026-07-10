@@ -80,7 +80,7 @@ class MarkdownView extends StatelessWidget {
         child: RepaintBoundary(
           child: GptMarkdownTheme(
             gptThemeData: gptTheme,
-            child: GptMarkdown(content, style: stableStyle, onLinkTap: onLinkTap, selectable: true),
+            child: GptMarkdown(content, style: stableStyle, onLinkTap: onLinkTap, selectable: false),
           ),
         ),
       ),
