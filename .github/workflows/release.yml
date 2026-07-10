@@ -52,6 +52,9 @@ jobs:
       - name: Build Android APK (release, arm64)
         run: flutter build apk --release --target-platform android-arm64
 
+      - name: Rename APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk Markread.${{ github.ref_name }}.apk
+
       - name: Build web
         run: flutter build web
 
@@ -64,5 +67,5 @@ jobs:
           name: ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            build/app/outputs/flutter-apk/app-release.apk
+            Markread.${{ github.ref_name }}.apk
             web-release.zip
