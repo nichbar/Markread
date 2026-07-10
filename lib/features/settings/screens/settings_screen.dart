@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/preferences_provider.dart';
+import '../../../core/widgets/app_layout_body.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -32,7 +33,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         title: const Text('Settings'),
       ),
-      body: ListView(
+      body: AppLayoutBody(
+        child: ListView(
         children: [
           // -- Appearance --
           _SectionHeader(title: 'Appearance'),
@@ -193,6 +195,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 32),
         ],
+      ),
       ),
     );
   }

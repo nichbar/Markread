@@ -103,6 +103,7 @@ class GptMarkdownConfig {
     this.components,
     this.inlineComponents,
     this.tableBuilder,
+    this.selectable = false,
   });
 
   /// The direction of the text.
@@ -165,6 +166,9 @@ class GptMarkdownConfig {
   /// The table builder.
   final TableBuilder? tableBuilder;
 
+  /// Whether the text should be selectable.
+  final bool selectable;
+
   /// A copy of the configuration with the specified parameters.
   GptMarkdownConfig copyWith({
     TextStyle? style,
@@ -187,6 +191,7 @@ class GptMarkdownConfig {
     final List<MarkdownComponent>? components,
     final List<MarkdownComponent>? inlineComponents,
     final TableBuilder? tableBuilder,
+    final bool? selectable,
   }) {
     return GptMarkdownConfig(
       style: style ?? this.style,
@@ -209,11 +214,21 @@ class GptMarkdownConfig {
       components: components ?? this.components,
       inlineComponents: inlineComponents ?? this.inlineComponents,
       tableBuilder: tableBuilder ?? this.tableBuilder,
+      selectable: selectable ?? this.selectable,
     );
   }
 
   /// A method to get a rich text widget from an inline span.
-  Text getRich(InlineSpan span) {
+  Widget getRich(InlineSpan span) {
+    if (selectable) {
+      return SelectableText.rich(
+        span as TextSpan,
+        textDirection: textDirection,
+        textScaler: textScaler,
+        textAlign: textAlign,
+        maxLines: maxLines,
+      );
+    }
     return Text.rich(
       span,
       textDirection: textDirection,
@@ -244,6 +259,7 @@ class GptMarkdownConfig {
         // imageBuilder == other.imageBuilder &&
         // highlightBuilder == other.highlightBuilder &&
         // onLinkTap == other.onLinkTap &&
+        selectable == other.selectable &&
         textDirection == other.textDirection;
   }
 }

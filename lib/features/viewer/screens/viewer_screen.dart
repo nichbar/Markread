@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/preferences_provider.dart';
+import '../../../core/widgets/app_layout_body.dart';
 import '../providers/viewer_provider.dart';
 import '../widgets/markdown_view.dart';
 import '../widgets/source_code_view.dart';
@@ -154,7 +155,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     return Scaffold(
       backgroundColor: readerColors.surface,
       appBar: _buildAppBar(viewerStateAsync, chromeColors),
-      body: viewerStateAsync.when(
+      body: AppLayoutBody(
+        child: viewerStateAsync.when(
         data: (state) =>
             _buildBody(state, preferences, readerColors, chromeColors),
         loading: () => Center(
@@ -184,6 +186,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
           message: 'Failed to load file: $err',
           onRetry: () => context.go('/'),
         ),
+      ),
       ),
     );
   }

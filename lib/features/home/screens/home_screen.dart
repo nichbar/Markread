@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/file_service.dart';
 import '../../../core/services/intent_file_service.dart';
+import '../../../core/widgets/app_layout_body.dart';
 import '../../../main.dart';
 import '../../viewer/providers/viewer_provider.dart';
 
@@ -67,11 +68,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => context.go('/settings'),
+            onPressed: () => context.push('/settings'),
           ),
         ],
       ),
-      body: Center(
+      body: AppLayoutBody(
+        child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
@@ -105,6 +107,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

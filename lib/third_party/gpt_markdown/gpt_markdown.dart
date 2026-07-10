@@ -30,6 +30,7 @@ class GptMarkdown extends StatelessWidget {
     this.components,
     this.inlineComponents,
     this.useDollarSignsForLatex = false,
+    this.selectable = false,
   });
 
   /// The direction of the text.
@@ -86,6 +87,9 @@ class GptMarkdown extends StatelessWidget {
 
   /// Whether to use dollar signs for LaTeX.
   final bool useDollarSignsForLatex;
+
+  /// Whether the text should be selectable.
+  final bool selectable;
 
   /// The table builder.
   final TableBuilder? tableBuilder;
@@ -193,6 +197,7 @@ class GptMarkdown extends StatelessWidget {
           components: components,
           inlineComponents: inlineComponents,
           tableBuilder: tableBuilder,
+          selectable: selectable,
         ),
       ),
     );
