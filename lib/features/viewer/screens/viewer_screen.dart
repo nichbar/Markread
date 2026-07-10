@@ -29,6 +29,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   double _fontScale = 1.0;
   int _activeHeadingIndex = -1;
   late final ScrollController _scrollController;
+  DateTime _lastHeadingUpdate = DateTime.now();
 
   @override
   void initState() {
@@ -39,6 +40,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   }
 
   void _onScrollTick() {
+    // Throttle heading updates to avoid per-frame work during fast flings.
+    // Updating every ~100ms is imperceptible and prevents frame drops
+    // when scrolling rapidly to boundaries and reversing direction.
+    final now = DateTime.now();
+    if (now.difference(_lastHeadingUpdate).inMilliseconds < 100) return;
+    _lastHeadingUpdate = now;
     _updateActiveHeading();
   }
 
