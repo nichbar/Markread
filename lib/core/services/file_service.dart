@@ -1,5 +1,6 @@
 // lib/core/services/file_service.dart
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -53,15 +54,22 @@ class FileService {
     return result.files.first;
   }
 
-  Future<String> readFileBytes(PlatformFile file) async {
+  Future<Uint8List> readFileAsBytes(PlatformFile file) async {
     if (file.bytes != null) {
-      return utf8.decode(file.bytes!);
+      return file.bytes is Uint8List
+          ? file.bytes as Uint8List
+          : Uint8List.fromList(file.bytes!);
     }
     if (file.path != null) {
       final xfile = XFile(file.path!);
-      return xfile.readAsString(encoding: utf8);
+      return xfile.readAsBytes();
     }
     throw Exception('Unable to read file: no path or bytes available');
+  }
+
+  Future<String> readFileBytes(PlatformFile file) async {
+    final bytes = await readFileAsBytes(file);
+    return utf8.decode(bytes);
   }
 
   bool isMarkdownFile(String fileName) {

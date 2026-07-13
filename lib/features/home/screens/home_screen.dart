@@ -51,10 +51,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       path: intentFile.path,
       size: 0,
     );
-    ref.read(viewerProvider.notifier).loadFile(file, fileService);
+
+    final notifier = ref.read(viewerProvider.notifier);
+    notifier.beginLoad(fileName: intentFile.name);
     if (mounted) {
       context.go('/viewer?name=${Uri.encodeComponent(intentFile.name)}');
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifier.completeLoad(file, fileService);
+    });
   }
 
   @override
@@ -116,10 +122,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final fileService = FileService();
     final file = await fileService.pickFile();
     if (file == null) return;
+    if (!mounted) return;
 
-    if (mounted) {
-      ref.read(viewerProvider.notifier).loadFile(file, fileService);
-      context.go('/viewer?name=${Uri.encodeComponent(file.name)}');
-    }
+    final notifier = ref.read(viewerProvider.notifier);
+    notifier.beginLoad(fileName: file.name);
+    context.go('/viewer?name=${Uri.encodeComponent(file.name)}');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifier.completeLoad(file, fileService);
+    });
   }
 }

@@ -1,9 +1,12 @@
 // lib/features/viewer/providers/viewer_provider.dart
 import 'dart:async';
-import 'dart:convert';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/services/file_content_processor.dart';
 import '../../../core/services/file_service.dart';
 
 enum ViewerStatus { initial, loading, loaded, error }
@@ -25,6 +28,7 @@ class HeadingItem {
 class ViewerState {
   final String fileName;
   final String fileContent;
+  final int fileByteLength;
   final ViewerStatus status;
   final String? errorMessage;
   final bool isSourceCode;
@@ -43,6 +47,7 @@ class ViewerState {
   const ViewerState({
     this.fileName = '',
     this.fileContent = '',
+    this.fileByteLength = 0,
     this.status = ViewerStatus.initial,
     this.errorMessage,
     this.isSourceCode = false,
@@ -62,6 +67,7 @@ class ViewerState {
   ViewerState copyWith({
     String? fileName,
     String? fileContent,
+    int? fileByteLength,
     ViewerStatus? status,
     String? errorMessage,
     bool? isSourceCode,
@@ -80,6 +86,7 @@ class ViewerState {
     return ViewerState(
       fileName: fileName ?? this.fileName,
       fileContent: fileContent ?? this.fileContent,
+      fileByteLength: fileByteLength ?? this.fileByteLength,
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
       isSourceCode: isSourceCode ?? this.isSourceCode,
@@ -106,52 +113,34 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
     return const ViewerState();
   }
 
-  Future<void> loadFile(PlatformFile file, FileService fileService) async {
-    state = const AsyncLoading();
+  /// Enter loading with a stable [AsyncData] so the viewer can render
+  /// themed chrome and a loading body (not a pure [AsyncLoading] blank).
+  void beginLoad({String fileName = ''}) {
+    state = AsyncData(ViewerState(
+      fileName: fileName,
+      status: ViewerStatus.loading,
+    ));
+  }
+
+  Future<void> completeLoad(PlatformFile file, FileService fileService) async {
+    // If caller forgot beginLoad, still enter loading (safe).
+    final current = state.value;
+    if (current == null || current.status != ViewerStatus.loading) {
+      state = AsyncData(ViewerState(
+        fileName: file.name,
+        status: ViewerStatus.loading,
+      ));
+    }
 
     try {
+      final bytes = await fileService.readFileAsBytes(file);
       final name = file.name;
-      final isMarkdown = fileService.isMarkdownFile(name);
 
-      String? codeLanguage;
-      bool isSourceCode = false;
+      final processed = await _process(name, bytes);
 
-      if (isMarkdown) {
-        isSourceCode = false;
-      } else {
-        codeLanguage = fileService.detectLanguage(name);
-        if (codeLanguage != null) {
-          isSourceCode = true;
-        }
-      }
-
-      final content = await fileService.readFileBytes(file);
-
-      final isBinary = fileService.isProbablyBinary(content);
-      List<HeadingItem> headings = [];
-      ViewMode viewMode = ViewMode.rendered;
-      String? warningMessage;
-
-      if (isBinary) {
-        viewMode = ViewMode.raw;
-        warningMessage = 'This file looks binary or malformed. Showing raw text.';
-      } else if (isSourceCode) {
-        viewMode = ViewMode.rendered;
-      } else {
-        headings = _parseHeadings(content);
-      }
-
-      state = AsyncData(ViewerState(
-        fileName: name,
-        fileContent: content,
-        status: ViewerStatus.loaded,
-        isSourceCode: isSourceCode,
-        codeLanguage: codeLanguage,
-        viewMode: viewMode,
-        headings: headings,
-        isBinary: isBinary,
-        warningMessage: warningMessage,
-      ));
+      state = AsyncData(
+        _viewerStateFromProcessed(processed, byteLength: bytes.length),
+      );
     } catch (e) {
       state = AsyncData(ViewerState(
         fileName: file.name,
@@ -161,57 +150,42 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
     }
   }
 
-  Future<void> loadFileFromBytes(PlatformFile file, List<int> bytes, FileService fileService) async {
-    state = const AsyncLoading();
+  ViewerState _viewerStateFromProcessed(
+    ProcessedFileContent p, {
+    required int byteLength,
+  }) {
+    return ViewerState(
+      fileName: p.fileName,
+      fileContent: p.fileContent,
+      fileByteLength: byteLength,
+      status: ViewerStatus.loaded,
+      isSourceCode: p.isSourceCode,
+      codeLanguage: p.codeLanguage,
+      viewMode: p.viewMode == ProcessedViewMode.raw
+          ? ViewMode.raw
+          : ViewMode.rendered,
+      headings: [
+        for (final h in p.headings)
+          HeadingItem(text: h.text, level: h.level, offset: h.offset),
+      ],
+      isBinary: p.isBinary,
+      warningMessage: p.warningMessage,
+    );
+  }
 
-    try {
-      final name = file.name;
-      final isMarkdown = fileService.isMarkdownFile(name);
-
-      String? codeLanguage;
-      bool isSourceCode = false;
-
-      if (!isMarkdown) {
-        codeLanguage = fileService.detectLanguage(name);
-        if (codeLanguage != null) {
-          isSourceCode = true;
-        }
-      }
-
-      final content = utf8.decode(bytes);
-
-      final isBinary = fileService.isProbablyBinary(content);
-      List<HeadingItem> headings = [];
-      ViewMode viewMode = ViewMode.rendered;
-      String? warningMessage;
-
-      if (isBinary) {
-        viewMode = ViewMode.raw;
-        warningMessage = 'This file looks binary or malformed. Showing raw text.';
-      } else if (isSourceCode) {
-        viewMode = ViewMode.rendered;
-      } else {
-        headings = _parseHeadings(content);
-      }
-
-      state = AsyncData(ViewerState(
-        fileName: name,
-        fileContent: content,
-        status: ViewerStatus.loaded,
-        isSourceCode: isSourceCode,
-        codeLanguage: codeLanguage,
-        viewMode: viewMode,
-        headings: headings,
-        isBinary: isBinary,
-        warningMessage: warningMessage,
-      ));
-    } catch (e) {
-      state = AsyncData(ViewerState(
-        fileName: file.name,
-        status: ViewerStatus.error,
-        errorMessage: 'Could not read file: ${e.toString()}',
-      ));
+  Future<ProcessedFileContent> _process(String name, Uint8List bytes) async {
+    // kIsWeb: process on main after yield; VM: Isolate.run
+    if (kIsWeb) {
+      return processFileContent(fileName: name, bytes: bytes);
     }
+    return Isolate.run(() => processFileContent(fileName: name, bytes: bytes));
+  }
+
+  /// Convenience for call sites that still want one method.
+  Future<void> loadFile(PlatformFile file, FileService fileService) async {
+    beginLoad();
+    await Future<void>.delayed(Duration.zero);
+    await completeLoad(file, fileService);
   }
 
   void toggleViewMode() {
@@ -349,30 +323,6 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
     if (matchIndex < 0 || matchIndex >= offsets.length) return 0;
     // Each prior match adds 4 characters (** before and ** after)
     return offsets[matchIndex] + (matchIndex * 4);
-  }
-
-  static List<HeadingItem> _parseHeadings(String markdown) {
-    final headings = <HeadingItem>[];
-    final lines = markdown.split('\n');
-    int offset = 0;
-    for (final line in lines) {
-      final trimmed = line.trimLeft();
-      if (trimmed.startsWith('#')) {
-        final level = trimmed.indexOf(' ');
-        if (level >= 1 && level <= 3) {
-          final text = trimmed.substring(level + 1).trim();
-          if (text.isNotEmpty) {
-            headings.add(HeadingItem(
-              text: text,
-              level: level,
-              offset: offset,
-            ));
-          }
-        }
-      }
-      offset += line.length + 1; // +1 for the '\n' removed by split
-    }
-    return headings;
   }
 }
 

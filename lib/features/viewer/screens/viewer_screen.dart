@@ -1,4 +1,6 @@
 // lib/features/viewer/screens/viewer_screen.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/preferences_provider.dart';
+import '../../../core/providers/reading_progress_provider.dart';
 import '../../../core/widgets/app_layout_body.dart';
 import '../providers/viewer_provider.dart';
 import '../widgets/markdown_view.dart';
@@ -23,7 +26,8 @@ class ViewerScreen extends ConsumerStatefulWidget {
   ConsumerState<ViewerScreen> createState() => _ViewerScreenState();
 }
 
-class _ViewerScreenState extends ConsumerState<ViewerScreen> {
+class _ViewerScreenState extends ConsumerState<ViewerScreen>
+    with WidgetsBindingObserver {
   bool _isReadingSurfaceDark = false;
   bool _isWordWrapEnabled = true;
   bool _isCodeBlockWrapEnabled = true;
@@ -32,12 +36,33 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   late final ScrollController _scrollController;
   DateTime _lastHeadingUpdate = DateTime.now();
 
+  Timer? _progressSaveDebounce;
+  int? _lastSavedCharOffset;
+  bool _didAttemptResume = false;
+  bool _isRestoring = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scrollController = ScrollController();
     _scrollController.addListener(_onScrollTick);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateStatusBarStyle());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateStatusBarStyle();
+      // Handle already-loaded state (listen does not fire for current value).
+      final state = ref.read(viewerProvider).value;
+      if (state != null) {
+        unawaited(_tryResumeReadingProgress(state));
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _progressSaveDebounce?.cancel();
+      unawaited(_flushReadingProgress());
+    }
   }
 
   void _onScrollTick() {
@@ -45,16 +70,99 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     // Updating every ~100ms is imperceptible and prevents frame drops
     // when scrolling rapidly to boundaries and reversing direction.
     final now = DateTime.now();
-    if (now.difference(_lastHeadingUpdate).inMilliseconds < 100) return;
-    _lastHeadingUpdate = now;
-    _updateActiveHeading();
+    if (now.difference(_lastHeadingUpdate).inMilliseconds >= 100) {
+      _lastHeadingUpdate = now;
+      _updateActiveHeading();
+    }
+
+    if (_isRestoring) return;
+    _progressSaveDebounce?.cancel();
+    _progressSaveDebounce = Timer(const Duration(milliseconds: 500), () {
+      unawaited(_flushReadingProgress());
+    });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _progressSaveDebounce?.cancel();
+    // Capture and flush synchronously before controller/ref teardown.
+    _flushReadingProgressSync();
     _scrollController.removeListener(_onScrollTick);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Synchronous capture of scroll position + fire-and-forget save.
+  /// Safe to call from dispose (reads ref/controller before they are torn down).
+  void _flushReadingProgressSync() {
+    if (_isRestoring) return;
+    if (!_scrollController.hasClients) return;
+
+    try {
+      final state = ref.read(viewerProvider).value;
+      final service = ref.read(readingProgressProvider);
+      if (state == null || state.status != ViewerStatus.loaded) return;
+      if (state.fileByteLength <= 0 || state.fileContent.isEmpty) return;
+
+      final maxExtent = _scrollController.position.maxScrollExtent;
+      final totalLength = state.fileContent.length;
+      int charOffset = 0;
+      if (maxExtent > 0 && totalLength > 0) {
+        final ratio =
+            (_scrollController.offset / maxExtent).clamp(0.0, 1.0);
+        charOffset = (ratio * totalLength).round().clamp(0, totalLength);
+      }
+
+      if (_lastSavedCharOffset != null &&
+          charOffset == _lastSavedCharOffset) {
+        return;
+      }
+      _lastSavedCharOffset = charOffset;
+      unawaited(service.save(
+        fileName: state.fileName,
+        byteLength: state.fileByteLength,
+        charOffset: charOffset,
+      ));
+    } catch (_) {
+      // Provider may already be unavailable during teardown.
+    }
+  }
+
+  int? _charOffsetFromScroll() {
+    final state = ref.read(viewerProvider).value;
+    if (state == null || state.status != ViewerStatus.loaded) return null;
+    if (state.fileByteLength <= 0 || state.fileContent.isEmpty) return null;
+    if (!_scrollController.hasClients) return null;
+
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final totalLength = state.fileContent.length;
+    if (maxExtent <= 0 || totalLength <= 0) return 0;
+
+    final ratio =
+        (_scrollController.offset / maxExtent).clamp(0.0, 1.0);
+    return (ratio * totalLength).round().clamp(0, totalLength);
+  }
+
+  Future<void> _flushReadingProgress() async {
+    if (_isRestoring) return;
+    final state = ref.read(viewerProvider).value;
+    if (state == null || state.status != ViewerStatus.loaded) return;
+    if (state.fileByteLength <= 0 || state.fileContent.isEmpty) return;
+
+    final charOffset = _charOffsetFromScroll();
+    if (charOffset == null) return;
+    if (_lastSavedCharOffset != null &&
+        charOffset == _lastSavedCharOffset) {
+      return;
+    }
+
+    _lastSavedCharOffset = charOffset;
+    await ref.read(readingProgressProvider).save(
+          fileName: state.fileName,
+          byteLength: state.fileByteLength,
+          charOffset: charOffset,
+        );
   }
 
   void _scrollToOffset(int offset, int totalLength) {
@@ -66,6 +174,69 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       target.clamp(0.0, maxExtent),
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
+    );
+  }
+
+  void _jumpToCharOffset(int charOffset, int totalLength) {
+    if (!_scrollController.hasClients) return;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    if (maxExtent <= 0 || totalLength <= 0) return;
+    final target = (charOffset / totalLength) * maxExtent;
+    _scrollController.jumpTo(target.clamp(0.0, maxExtent));
+  }
+
+  Future<void> _tryResumeReadingProgress(ViewerState state) async {
+    if (_didAttemptResume) return;
+    if (state.status != ViewerStatus.loaded) return;
+    if (state.fileByteLength <= 0 || state.fileContent.isEmpty) return;
+
+    _didAttemptResume = true;
+
+    final progress = await ref.read(readingProgressProvider).get(
+          state.fileName,
+          state.fileByteLength,
+        );
+    if (!mounted) return;
+    if (progress == null || progress.charOffset <= 0) return;
+
+    final totalLength = state.fileContent.length;
+    final charOffset = progress.charOffset.clamp(0, totalLength);
+    if (charOffset <= 0) return;
+
+    await _jumpToCharOffsetWithRetry(charOffset, totalLength);
+  }
+
+  Future<void> _jumpToCharOffsetWithRetry(
+    int charOffset,
+    int totalLength, {
+    int attempt = 0,
+  }) async {
+    if (!mounted) return;
+
+    if (_scrollController.hasClients &&
+        _scrollController.position.maxScrollExtent > 0) {
+      _isRestoring = true;
+      _jumpToCharOffset(charOffset, totalLength);
+      _lastSavedCharOffset = charOffset;
+      // Allow the jump to settle before scroll listener can re-save.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _isRestoring = false;
+      });
+      return;
+    }
+
+    if (attempt >= 5) return;
+
+    final completer = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      completer.complete();
+    });
+    await completer.future;
+    if (!mounted) return;
+    await _jumpToCharOffsetWithRetry(
+      charOffset,
+      totalLength,
+      attempt: attempt + 1,
     );
   }
 
@@ -129,6 +300,13 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     final viewerStateAsync = ref.watch(viewerProvider);
     final preferences = ref.watch(preferencesProvider);
 
+    // Silent resume once the document is loaded.
+    ref.listen(viewerProvider, (previous, next) {
+      final state = next.value;
+      if (state == null) return;
+      unawaited(_tryResumeReadingProgress(state));
+    });
+
     final isSystemDark = Theme.of(context).brightness == Brightness.dark;
     final isBaseDark = switch (preferences.appThemeMode) {
       AppThemeMode.system => isSystemDark,
@@ -157,36 +335,17 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       appBar: _buildAppBar(viewerStateAsync, chromeColors),
       body: AppLayoutBody(
         child: viewerStateAsync.when(
-        data: (state) =>
-            _buildBody(state, preferences, readerColors, chromeColors),
-        loading: () => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.insert_drive_file_outlined,
-                  size: 48, color: chromeColors.muted),
-              const SizedBox(height: 12),
-              Text(widget.fileName,
-                  style: TextStyle(
-                      fontSize: 14, color: chromeColors.muted),
-                  overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: chromeColors.muted,
-                ),
-              ),
-            ],
+          data: (state) =>
+              _buildBody(state, preferences, readerColors, chromeColors),
+          loading: () => _LoadingView(
+            fileName: widget.fileName,
+            chromeColors: chromeColors,
+          ),
+          error: (err, _) => _ErrorView(
+            message: 'Failed to load file: $err',
+            onRetry: () => context.go('/'),
           ),
         ),
-        error: (err, _) => _ErrorView(
-          message: 'Failed to load file: $err',
-          onRetry: () => context.go('/'),
-        ),
-      ),
       ),
     );
   }
@@ -196,10 +355,16 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     ReaderColors chromeColors,
   ) {
     final state = viewerStateAsync.value;
-    final isSearchActive = state?.isSearchActive ?? false;
-    final isMarkdown = state != null && !state.isSourceCode && !state.isBinary;
+    final isLoading = viewerStateAsync.isLoading ||
+        state == null ||
+        state.status == ViewerStatus.loading ||
+        state.status == ViewerStatus.initial;
+    final isReady = state != null && state.status == ViewerStatus.loaded;
+    final isSearchActive = isReady && state.isSearchActive;
+    final isMarkdown =
+        isReady && !state.isSourceCode && !state.isBinary;
 
-    if (isSearchActive && state != null) {
+    if (isSearchActive) {
       return PreferredSize(
         preferredSize: const Size.fromHeight(120),
         child: ViewerSearchBar(
@@ -229,8 +394,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       );
     }
 
-    final viewModeLabel = state == null
-        ? 'Loading...'
+    final titleName = (state?.fileName.isNotEmpty ?? false)
+        ? state!.fileName
+        : widget.fileName;
+
+    final viewModeLabel = !isReady
+        ? 'Opening...'
         : state.isSourceCode
             ? 'Source code'
             : state.viewMode == ViewMode.raw
@@ -250,14 +419,17 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             )
           : IconButton(
               icon: const Icon(Icons.arrow_back),
+              tooltip: 'Back',
               onPressed: () => context.go('/'),
             ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.fileName,
-              style: const TextStyle(fontSize: 16),
-              overflow: TextOverflow.ellipsis),
+          Text(
+            titleName,
+            style: const TextStyle(fontSize: 16),
+            overflow: TextOverflow.ellipsis,
+          ),
           Text(
             viewModeLabel,
             style: TextStyle(fontSize: 11, color: chromeColors.muted),
@@ -265,13 +437,24 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         ],
       ),
       actions: [
-        IconButton(
-          icon: Icon(Icons.search, color: chromeColors.content),
-          tooltip: 'Search',
-          onPressed: () => ref.read(viewerProvider.notifier).toggleSearch(),
-        ),
+        if (isReady)
+          IconButton(
+            icon: Icon(Icons.search, color: chromeColors.content),
+            tooltip: 'Search',
+            onPressed: () => ref.read(viewerProvider.notifier).toggleSearch(),
+          )
+        else
+          IconButton(
+            icon: Icon(Icons.search, color: chromeColors.muted),
+            tooltip: 'Search',
+            onPressed: null,
+          ),
         PopupMenuButton<String>(
-          icon: Icon(Icons.more_vert, color: chromeColors.content),
+          enabled: !isLoading,
+          icon: Icon(
+            Icons.more_vert,
+            color: isLoading ? chromeColors.muted : chromeColors.content,
+          ),
           color: chromeColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -391,7 +574,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                 ],
               ),
             ),
-            PopupMenuDivider(height: 1),
+            const PopupMenuDivider(height: 1),
             PopupMenuItem(
               value: 'settings',
               child: Row(
@@ -415,8 +598,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     ReaderColors readerColors,
     ReaderColors chromeColors,
   ) {
-    if (state.status == ViewerStatus.initial) {
-      return const SizedBox.shrink();
+    if (state.status == ViewerStatus.initial ||
+        state.status == ViewerStatus.loading) {
+      final name =
+          state.fileName.isNotEmpty ? state.fileName : widget.fileName;
+      return _LoadingView(fileName: name, chromeColors: chromeColors);
     }
     if (state.status == ViewerStatus.error) {
       return _ErrorView(
@@ -553,6 +739,64 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         onHeadingSelected: (offset) {
           _scrollToOffset(offset, state.fileContent.length);
         },
+      ),
+    );
+  }
+}
+
+class _LoadingView extends StatelessWidget {
+  final String fileName;
+  final ReaderColors chromeColors;
+
+  const _LoadingView({
+    required this.fileName,
+    required this.chromeColors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = fileName.isEmpty ? 'file' : fileName;
+    return Semantics(
+      label: 'Opening $displayName',
+      liveRegion: true,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ExcludeSemantics(
+                child: Icon(
+                  Icons.insert_drive_file_outlined,
+                  size: 48,
+                  color: chromeColors.muted,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                displayName,
+                style: TextStyle(fontSize: 14, color: chromeColors.muted),
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Opening…',
+                style: TextStyle(fontSize: 12, color: chromeColors.muted),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: chromeColors.content.withValues(alpha: 0.65),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
