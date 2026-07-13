@@ -103946,7 +103946,7 @@ p=""+B.d.aH(q)
 o=t.p
 n=j.e
 m=t.BN
-return A.atj(i,k,new A.x9(A.aXb(A.d([new A.pa("Appearance",k),new A.bn(B.lz,h,k),B.yF,new A.pa("Reader",k),s,r,new A.pa("Font Size",k),new A.bn(B.jc,A.dh(A.d([B.aT5,A.l1(A.aYQ(12,p,24,12,new A.aJU(l),q),1),B.aTc],o),B.T,B.U,B.au,0,k),k),A.fO(A.c6(p+" sp",k,k,k,A.V(a).ok.z,k,k),k,k),new A.pa("Line Height",k),new A.bn(B.jc,A.dh(A.d([B.aT1,A.l1(A.aYQ(8,B.d.ao(n,1),2,1.2,new A.aJV(l),n),1),B.aT2],o),B.T,B.U,B.au,0,k),k),A.fO(A.c6(B.d.ao(n,1)+"x",k,k,k,A.V(a).ok.z,k,k),k,k),new A.pa("Text Alignment",k),new A.bn(B.lz,A.aYy(new A.aJW(l),B.axy,A.cp([j.f],m),m),k),B.yF,new A.pa("About",k),B.asd,B.ase,B.Ly],o),k,k,!1),k))},
+return A.atj(i,k,new A.x9(A.aXb(A.d([new A.pa("Appearance",k),new A.bn(B.lz,h,k),B.yF,new A.pa("Reader",k),s,r,new A.pa("Font Size",k),new A.bn(B.jc,A.dh(A.d([B.aT5,A.l1(A.aYQ(12,p,24,12,new A.aJU(l),q),1),B.aTb],o),B.T,B.U,B.au,0,k),k),A.fO(A.c6(p+" sp",k,k,k,A.V(a).ok.z,k,k),k,k),new A.pa("Line Height",k),new A.bn(B.jc,A.dh(A.d([B.aT1,A.l1(A.aYQ(8,B.d.ao(n,1),2,1.2,new A.aJV(l),n),1),B.aT2],o),B.T,B.U,B.au,0,k),k),A.fO(A.c6(B.d.ao(n,1)+"x",k,k,k,A.V(a).ok.z,k,k),k,k),new A.pa("Text Alignment",k),new A.bn(B.lz,A.aYy(new A.aJW(l),B.axy,A.cp([j.f],m),m),k),B.yF,new A.pa("About",k),B.asd,B.ase,B.Ly],o),k,k,!1),k))},
 aiT(a){var s
 switch(a.a){case 0:s="Light"
 break
@@ -116178,8 +116178,8 @@ B.a0n=new A.dr("MarkRead",null,null,null,null,null,null,null,null,null)
 B.aSZ=new A.dr("A clean markdown reader",null,null,null,null,null,null,null,null,null)
 B.asd=new A.yG(B.a0n,B.aSZ,null,null)
 B.aT3=new A.dr("Version",null,null,null,null,null,null,null,null,null)
-B.aTa=new A.dr("1.0.0",null,null,null,null,null,null,null,null,null)
-B.ase=new A.yG(B.aT3,B.aTa,null,null)
+B.aTc=new A.dr("1.0.4",null,null,null,null,null,null,null,null,null)
+B.ase=new A.yG(B.aT3,B.aTc,null,null)
 B.aso=s([192,193,194],t.t)
 B.avV=s([1373.2198709594231,-1100.4251190754821,-7.278681089101213],t.n)
 B.av0=s([-271.815969077903,559.6580465940733,-32.46047482791194],t.n)
@@ -116236,8 +116236,8 @@ B.uc=new A.kS(1,"light")
 B.aSY=new A.dr("Light",null,null,null,null,null,null,null,null,null)
 B.a3k=new A.io(B.uc,B.aSY,t.a1)
 B.ud=new A.kS(2,"dark")
-B.aTb=new A.dr("Dark",null,null,null,null,null,null,null,null,null)
-B.a3m=new A.io(B.ud,B.aTb,t.a1)
+B.aTa=new A.dr("Dark",null,null,null,null,null,null,null,null,null)
+B.a3m=new A.io(B.ud,B.aTa,t.a1)
 B.atp=s([B.a3l,B.a3k,B.a3m],A.a8("w<io<kS>>"))
 B.mf=new A.kg(6,"scriptscript")
 B.yw=new A.k2(B.r,B.mf)
@@ -121806,7 +121806,7 @@ B.aT6=new A.dr("Open File",null,null,null,null,null,null,null,null,null)
 B.aT7=new A.dr("Home",null,null,null,null,null,null,null,null,null)
 B.aT8=new A.dr("Page Not Found",null,B.i7,null,null,null,null,null,null,null)
 B.aS0=new A.C(!0,null,null,null,null,null,20,B.bB,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.aTc=new A.dr("Aa",null,B.aS0,null,null,null,null,null,null,null)
+B.aTb=new A.dr("Aa",null,B.aS0,null,null,null,null,null,null,null)
 B.aTe=new A.dr("Open Different File",null,null,null,null,null,null,null,null,null)
 B.aTf=new A.dr("Settings",null,null,null,null,null,null,null,null,null)
 B.aTg=new A.dr("Page Not Found",null,null,null,null,null,null,null,null,null)
