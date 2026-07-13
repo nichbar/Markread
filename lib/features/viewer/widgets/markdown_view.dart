@@ -13,7 +13,6 @@ class MarkdownView extends StatefulWidget {
   final double fontSize;
   final double lineHeight;
   final ReadingTextAlign textAlignment;
-  final ReadingFont readingFont;
   final bool isWordWrapEnabled;
   final ScrollController? scrollController;
   final Color? textColor;
@@ -29,7 +28,6 @@ class MarkdownView extends StatefulWidget {
     this.fontSize = 16.0,
     this.lineHeight = 1.6,
     this.textAlignment = ReadingTextAlign.left,
-    this.readingFont = ReadingFont.merriweather,
     this.isWordWrapEnabled = true,
     this.scrollController,
     this.textColor,
@@ -80,7 +78,6 @@ class MarkdownViewState extends State<MarkdownView> {
         oldWidget.fontSize != widget.fontSize ||
         oldWidget.lineHeight != widget.lineHeight ||
         oldWidget.isWordWrapEnabled != widget.isWordWrapEnabled ||
-        oldWidget.readingFont != widget.readingFont ||
         oldWidget.textAlignment != widget.textAlignment ||
         oldWidget.headingCount != widget.headingCount;
 
@@ -308,10 +305,6 @@ class MarkdownViewState extends State<MarkdownView> {
         ? TextAlign.justify
         : TextAlign.left;
 
-    final fontFamily = widget.readingFont == ReadingFont.merriweather
-        ? 'Merriweather'
-        : null;
-
     final parentStyle = DefaultTextStyle.of(context).style;
     final resolvedColor = widget.textColor ?? parentStyle.color;
     // Strip color to prevent MdWidget re-parsing on every animation frame
@@ -346,7 +339,6 @@ class MarkdownViewState extends State<MarkdownView> {
       style: TextStyle(
         fontSize: effectiveFontSize,
         height: widget.lineHeight,
-        fontFamily: fontFamily,
       ),
       textAlign: textAlign,
       child: SingleChildScrollView(

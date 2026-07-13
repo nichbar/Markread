@@ -17,7 +17,7 @@ Since this is a Flutter app, the APK size will be larger than [MarkReader](https
 - **Table of contents** with heading navigation
 - **Zoomable text** with pinch-to-zoom
 - **Reading themes**: Light, Sepia, Dark, AMOLED — with independent light/dark reader surface toggle
-- **Customizable reading**: font family (Merriweather/system serif), code font (JetBrains Mono/system monospace), font size, line height, text alignment
+- **Customizable reading**: font size, line height, text alignment
 - **Word wrap** and **code block wrap** toggles
 - **Android intent support**: open markdown files from other apps via "Open with..."
 - **Material 3** design with light, dark, and system theme modes

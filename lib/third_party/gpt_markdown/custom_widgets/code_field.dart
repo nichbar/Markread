@@ -73,7 +73,7 @@ class _CodeFieldState extends State<CodeField> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(16),
             child: DefaultTextStyle.merge(
-              style: const TextStyle(fontFamily: 'JetBrainsMono'),
+              style: const TextStyle(fontFamily: 'monospace'),
               child: Text(widget.codes),
             ),
           ),

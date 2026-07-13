@@ -7,8 +7,6 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
   static const _keyAppThemeMode = 'appThemeMode';
   static const _keyReaderLightTheme = 'readerLightTheme';
   static const _keyReaderDarkTheme = 'readerDarkTheme';
-  static const _keyReadingFont = 'readingFont';
-  static const _keyCodeFont = 'codeFont';
   static const _keyFontSize = 'fontSize';
   static const _keyLineHeight = 'lineHeight';
   static const _keyTextAlignment = 'textAlignment';
@@ -39,16 +37,6 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
             ? ReaderDarkTheme.values[readerDarkThemeIndex]
             : ReaderDarkTheme.dark;
 
-    final readingFontIndex = prefs.getInt(_keyReadingFont) ?? 0;
-    final readingFont = readingFontIndex < ReadingFont.values.length
-        ? ReadingFont.values[readingFontIndex]
-        : ReadingFont.merriweather;
-
-    final codeFontIndex = prefs.getInt(_keyCodeFont) ?? 0;
-    final codeFont = codeFontIndex < CodeFont.values.length
-        ? CodeFont.values[codeFontIndex]
-        : CodeFont.jetbrainsMono;
-
     final fontSize = prefs.getDouble(_keyFontSize) ?? 16.0;
     final lineHeight = prefs.getDouble(_keyLineHeight) ?? 1.6;
     final textAlignmentIndex = prefs.getInt(_keyTextAlignment) ?? 0;
@@ -61,8 +49,6 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
       appThemeMode: appThemeMode,
       readerLightTheme: readerLightTheme,
       readerDarkTheme: readerDarkTheme,
-      readingFont: readingFont,
-      codeFont: codeFont,
       fontSize: fontSize,
       lineHeight: lineHeight,
       textAlignment: textAlignment,
@@ -85,18 +71,6 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyReaderDarkTheme, theme.index);
     state = state.copyWith(readerDarkTheme: theme);
-  }
-
-  Future<void> setReadingFont(ReadingFont font) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyReadingFont, font.index);
-    state = state.copyWith(readingFont: font);
-  }
-
-  Future<void> setCodeFont(CodeFont font) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyCodeFont, font.index);
-    state = state.copyWith(codeFont: font);
   }
 
   Future<void> setFontSize(double size) async {

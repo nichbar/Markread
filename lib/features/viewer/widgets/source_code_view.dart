@@ -1,7 +1,6 @@
 // lib/features/viewer/widgets/source_code_view.dart
 import 'package:flutter/material.dart';
 import 'package:markread/third_party/gpt_markdown/gpt_markdown.dart';
-import '../../../core/models/user_preferences.dart';
 import 'zoomable_area.dart';
 
 class SourceCodeView extends StatelessWidget {
@@ -9,7 +8,6 @@ class SourceCodeView extends StatelessWidget {
   final String language;
   final double fontSize;
   final double lineHeight;
-  final CodeFont codeFont;
   final bool isWordWrapEnabled;
   final ScrollController? scrollController;
   final void Function(String url, String title)? onLinkTap;
@@ -22,7 +20,6 @@ class SourceCodeView extends StatelessWidget {
     required this.language,
     this.fontSize = 16.0,
     this.lineHeight = 1.6,
-    this.codeFont = CodeFont.jetbrainsMono,
     this.isWordWrapEnabled = true,
     this.scrollController,
     this.onLinkTap,
@@ -34,22 +31,22 @@ class SourceCodeView extends StatelessWidget {
   Widget build(BuildContext context) {
     final wrapped = '```$language\n$content\n```';
 
-    final fontFamily = codeFont == CodeFont.jetbrainsMono
-        ? 'JetBrainsMono'
-        : null;
-
     final effectiveFontSize = fontSize * fontScale;
 
     final codeWidget = DefaultTextStyle(
       style: TextStyle(
         fontSize: effectiveFontSize,
         height: lineHeight,
-        fontFamily: fontFamily,
+        fontFamily: 'monospace',
       ),
       child: SingleChildScrollView(
         controller: scrollController,
         padding: const EdgeInsets.all(16),
-        child: GptMarkdown(wrapped, style: DefaultTextStyle.of(context).style.copyWith(color: null), onLinkTap: onLinkTap),
+        child: GptMarkdown(
+          wrapped,
+          style: DefaultTextStyle.of(context).style.copyWith(color: null),
+          onLinkTap: onLinkTap,
+        ),
       ),
     );
 

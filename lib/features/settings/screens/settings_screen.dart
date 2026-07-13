@@ -77,22 +77,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onChanged: (v) =>
                 ref.read(preferencesProvider.notifier).setReaderDarkTheme(v),
           ),
-          _buildDropdownTile(
-            label: 'Reading font',
-            value: prefs.readingFont,
-            items: ReadingFont.values,
-            display: _displayReadingFont,
-            onChanged: (v) =>
-                ref.read(preferencesProvider.notifier).setReadingFont(v),
-          ),
-          _buildDropdownTile(
-            label: 'Code font',
-            value: prefs.codeFont,
-            items: CodeFont.values,
-            display: _displayCodeFont,
-            onChanged: (v) =>
-                ref.read(preferencesProvider.notifier).setCodeFont(v),
-          ),
 
           // -- Font Size --
           _SectionHeader(title: 'Font Size'),
@@ -208,16 +192,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _displayReaderDarkTheme(ReaderDarkTheme t) => switch (t) {
         ReaderDarkTheme.dark => 'Dark',
         ReaderDarkTheme.amoled => 'AMOLED',
-      };
-
-  String _displayReadingFont(ReadingFont f) => switch (f) {
-        ReadingFont.merriweather => 'Merriweather',
-        ReadingFont.systemSerif => 'System serif',
-      };
-
-  String _displayCodeFont(CodeFont f) => switch (f) {
-        CodeFont.jetbrainsMono => 'JetBrains Mono',
-        CodeFont.systemMono => 'System monospace',
       };
 }
 

@@ -827,10 +827,6 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
               ? TextAlign.justify
               : TextAlign.left;
 
-      final fontFamily = preferences.readingFont == ReadingFont.merriweather
-          ? 'Merriweather'
-          : null;
-
       final textWidget = SingleChildScrollView(
         controller: _scrollController,
         padding: const EdgeInsets.all(16),
@@ -839,7 +835,6 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
           style: TextStyle(
             fontSize: preferences.fontSize,
             height: preferences.lineHeight,
-            fontFamily: fontFamily,
           ),
           textAlign: textAlign,
         ),
@@ -860,7 +855,6 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
         language: state.codeLanguage ?? '',
         fontSize: preferences.fontSize,
         lineHeight: preferences.lineHeight,
-        codeFont: preferences.codeFont,
         isWordWrapEnabled: _isWordWrapEnabled,
         scrollController: _scrollController,
         onLinkTap: _onLinkTap,
@@ -878,7 +872,6 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       fontSize: preferences.fontSize,
       lineHeight: preferences.lineHeight,
       textAlignment: preferences.textAlignment,
-      readingFont: preferences.readingFont,
       isWordWrapEnabled: _isWordWrapEnabled,
       scrollController: _scrollController,
       textColor: readerColors.content,
