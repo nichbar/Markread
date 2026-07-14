@@ -12,12 +12,10 @@ class GptMarkdown extends StatelessWidget {
     this.style,
     this.followLinkColor = false,
     this.textDirection = TextDirection.ltr,
-    this.latexWorkaround,
     this.textAlign,
     this.imageBuilder,
     this.textScaler,
     this.onLinkTap,
-    this.latexBuilder,
     this.codeBuilder,
     this.sourceTagBuilder,
     this.highlightBuilder,
@@ -29,7 +27,6 @@ class GptMarkdown extends StatelessWidget {
     this.tableBuilder,
     this.components,
     this.inlineComponents,
-    this.useDollarSignsForLatex = false,
     this.selectable = false,
   });
 
@@ -51,15 +48,10 @@ class GptMarkdown extends StatelessWidget {
   /// The callback function to handle link clicks.
   final void Function(String url, String title)? onLinkTap;
 
-  /// The LaTeX workaround.
-  final String Function(String tex)? latexWorkaround;
   final int? maxLines;
 
   /// The overflow.
   final TextOverflow? overflow;
-
-  /// The LaTeX builder.
-  final LatexBuilder? latexBuilder;
 
   /// Whether to follow the link color.
   final bool followLinkColor;
@@ -85,9 +77,6 @@ class GptMarkdown extends StatelessWidget {
   /// The unordered list builder.
   final UnOrderedListBuilder? unOrderedListBuilder;
 
-  /// Whether to use dollar signs for LaTeX.
-  final bool useDollarSignsForLatex;
-
   /// Whether the text should be selectable.
   final bool selectable;
 
@@ -95,86 +84,18 @@ class GptMarkdown extends StatelessWidget {
   final TableBuilder? tableBuilder;
 
   /// The list of components.
-  ///  ```dart
-  /// List<MarkdownComponent> components = [
-  ///   CodeBlockMd(),
-  ///   NewLines(),
-  ///   BlockQuote(),
-  ///   ImageMd(),
-  ///   ATagMd(),
-  ///   TableMd(),
-  ///   HTag(),
-  ///   UnOrderedList(),
-  ///   OrderedList(),
-  ///   RadioButtonMd(),
-  ///   CheckBoxMd(),
-  ///   HrLine(),
-  ///   StrikeMd(),
-  ///   BoldMd(),
-  ///   ItalicMd(),
-  ///   LatexMath(),
-  ///   LatexMathMultiLine(),
-  ///   HighlightedText(),
-  ///   SourceTag(),
-  ///   IndentMd(),
-  /// ];
-  /// ```
   final List<MarkdownComponent>? components;
 
   /// The list of inline components.
-  ///  ```dart
-  /// List<MarkdownComponent> inlineComponents = [
-  ///   ImageMd(),
-  ///   ATagMd(),
-  ///   TableMd(),
-  ///   StrikeMd(),
-  ///   BoldMd(),
-  ///   ItalicMd(),
-  ///   LatexMath(),
-  ///   LatexMathMultiLine(),
-  ///   HighlightedText(),
-  ///   SourceTag(),
-  /// ];
-  /// ```
   final List<MarkdownComponent>? inlineComponents;
-
-  /// A method to remove extra lines inside block LaTeX.
-  // String _removeExtraLinesInsideBlockLatex(String text) {
-  //   return text.replaceAllMapped(
-  //     RegExp(r"\\\[(.*?)\\\]", multiLine: true, dotAll: true),
-  //     (match) {
-  //       String content = match[0] ?? "";
-  //       return content.replaceAllMapped(RegExp(r"\n[\n\ ]+"), (match) => "\n");
-  //     },
-  //   );
-  // }
 
   @override
   Widget build(BuildContext context) {
-    String tex = data.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
-    if (useDollarSignsForLatex) {
-      tex = tex.replaceAllMapped(
-        RegExp(r"(?<!\\)\$\$(.*?)(?<!\\)\$\$", dotAll: true),
-        (match) => "\\[${match[1] ?? ""}\\]",
-      );
-      if (!tex.contains(r"\(")) {
-        tex = tex.replaceAllMapped(
-          RegExp(r"(?<!\\)\$(.*?)(?<!\\)\$"),
-          (match) => "\\(${match[1] ?? ""}\\)",
-        );
-        tex = tex.splitMapJoin(
-          RegExp(r"\[.*?\]|\(.*?\)"),
-          onNonMatch: (p0) {
-            return p0.replaceAll("\\\$", "\$");
-          },
-        );
-      }
-    }
-    // tex = _removeExtraLinesInsideBlockLatex(tex);
+    final text = data.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
     return ClipRRect(
       child: MdWidget(
         context,
-        tex,
+        text,
         true,
         config: GptMarkdownConfig(
           textDirection: textDirection,
@@ -183,8 +104,6 @@ class GptMarkdown extends StatelessWidget {
           textAlign: textAlign,
           textScaler: textScaler,
           followLinkColor: followLinkColor,
-          latexWorkaround: latexWorkaround,
-          latexBuilder: latexBuilder,
           codeBuilder: codeBuilder,
           maxLines: maxLines,
           overflow: overflow,

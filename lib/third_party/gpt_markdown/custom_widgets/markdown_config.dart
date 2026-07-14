@@ -32,15 +32,6 @@ typedef CodeBlockBuilder =
       bool closed,
     );
 
-/// A builder function for the LaTeX.
-typedef LatexBuilder =
-    Widget Function(
-      BuildContext context,
-      String tex,
-      TextStyle textStyle,
-      bool inline,
-    );
-
 /// A builder function for the link.
 typedef LinkBuilder =
     Widget Function(
@@ -88,8 +79,6 @@ class GptMarkdownConfig {
     this.onLinkTap,
     this.textAlign,
     this.textScaler,
-    this.latexWorkaround,
-    this.latexBuilder,
     this.followLinkColor = false,
     this.codeBuilder,
     this.sourceTagBuilder,
@@ -120,12 +109,6 @@ class GptMarkdownConfig {
 
   /// The callback function to handle link clicks.
   final void Function(String url, String title)? onLinkTap;
-
-  /// The LaTeX workaround.
-  final String Function(String tex)? latexWorkaround;
-
-  /// The LaTeX builder.
-  final LatexBuilder? latexBuilder;
 
   /// The source tag builder.
   final SourceTagBuilder? sourceTagBuilder;
@@ -176,8 +159,6 @@ class GptMarkdownConfig {
     final void Function(String url, String title)? onLinkTap,
     final TextAlign? textAlign,
     final TextScaler? textScaler,
-    final String Function(String tex)? latexWorkaround,
-    final LatexBuilder? latexBuilder,
     final SourceTagBuilder? sourceTagBuilder,
     final bool? followLinkColor,
     final CodeBlockBuilder? codeBuilder,
@@ -199,8 +180,6 @@ class GptMarkdownConfig {
       onLinkTap: onLinkTap ?? this.onLinkTap,
       textAlign: textAlign ?? this.textAlign,
       textScaler: textScaler ?? this.textScaler,
-      latexWorkaround: latexWorkaround ?? this.latexWorkaround,
-      latexBuilder: latexBuilder ?? this.latexBuilder,
       followLinkColor: followLinkColor ?? this.followLinkColor,
       codeBuilder: codeBuilder ?? this.codeBuilder,
       sourceTagBuilder: sourceTagBuilder ?? this.sourceTagBuilder,
@@ -247,18 +226,6 @@ class GptMarkdownConfig {
         maxLines == other.maxLines &&
         overflow == other.overflow &&
         followLinkColor == other.followLinkColor &&
-        // latexWorkaround == other.latexWorkaround &&
-        // components == other.components &&
-        // inlineComponents == other.inlineComponents &&
-        // latexBuilder == other.latexBuilder &&
-        // sourceTagBuilder == other.sourceTagBuilder &&
-        // codeBuilder == other.codeBuilder &&
-        // orderedListBuilder == other.orderedListBuilder &&
-        // unOrderedListBuilder == other.unOrderedListBuilder &&
-        // linkBuilder == other.linkBuilder &&
-        // imageBuilder == other.imageBuilder &&
-        // highlightBuilder == other.highlightBuilder &&
-        // onLinkTap == other.onLinkTap &&
         selectable == other.selectable &&
         textDirection == other.textDirection;
   }

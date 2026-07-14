@@ -10,7 +10,7 @@ Since this is a Flutter app, the APK size will be larger than [MarkReader](https
 
 ## Features
 
-- **Markdown rendering** with full formatting support (headings, tables, code blocks, math via flutter_math_fork, images)
+- **Markdown rendering** with full formatting support (headings, tables, code blocks, images)
 - **Source code view** with syntax highlighting and language detection
 - **Raw text view** for plain text reading
 - **Search** within open documents

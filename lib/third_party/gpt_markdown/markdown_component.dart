@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
 import 'dart:math';
 
 import 'custom_widgets/markdown_config.dart';
 import 'custom_widgets/custom_divider.dart';
 import 'custom_widgets/custom_error_image.dart';
 import 'custom_widgets/custom_rb_cb.dart';
-import 'custom_widgets/selectable_adapter.dart';
 import 'custom_widgets/unordered_ordered_list.dart';
 import 'custom_widgets/code_field.dart';
 import 'custom_widgets/indent_widget.dart';
@@ -601,10 +598,11 @@ class ItalicMd extends InlineMd {
   }
 }
 
+/// Display math `\[...\]` rendered as monospace source (no LaTeX engine).
 class LatexMathMultiLine extends BlockMd {
   @override
   String get expString => (r"\ *\\\[((?:.)*?)\\\]");
-  // (r"\ *\\\[((?:(?!\n\n\n).)*?)\\\]|(\\begin.*?\\end{.*?})");
+
   @override
   RegExp get exp => RegExp(expString, dotAll: true, multiLine: true);
 
@@ -614,75 +612,22 @@ class LatexMathMultiLine extends BlockMd {
     String text,
     final GptMarkdownConfig config,
   ) {
-    var p0 = exp.firstMatch(text.trim());
-    String mathText = p0?[1] ?? p0?[2] ?? '';
-    var workaround = config.latexWorkaround ?? (String tex) => tex;
-
-    var builder =
-        config.latexBuilder ??
-        (BuildContext context, String tex, TextStyle textStyle, bool inline) =>
-            SelectableAdapter(
-              selectedText: tex,
-              child: Math.tex(
-                tex,
-                textStyle: textStyle,
-                mathStyle: MathStyle.display,
-                textScaleFactor: 1,
-                settings: const TexParserSettings(strict: Strict.ignore),
-                options: MathOptions(
-                  sizeUnderTextStyle: MathSize.large,
-                  color:
-                      config.style?.color ??
-                      DefaultTextStyle.of(context).style.color ??
-                      Colors.black,
-                  fontSize:
-                      config.style?.fontSize ??
-                      Theme.of(context).textTheme.bodyMedium?.fontSize,
-                  mathFontOptions: FontOptions(
-                    fontFamily: "Main",
-                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
-                    fontShape: FontStyle.normal,
-                  ),
-                  textFontOptions: FontOptions(
-                    fontFamily: "Main",
-                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
-                    fontShape: FontStyle.normal,
-                  ),
-                  style: MathStyle.display,
-                ),
-                onErrorFallback: (err) {
-                  return Text(
-                    workaround(mathText),
-                    textDirection: config.textDirection,
-                    style: textStyle.copyWith(
-                      color:
-                          (!kDebugMode)
-                              ? null
-                              : Theme.of(context).colorScheme.error,
-                    ),
-                  );
-                },
-              ),
-            );
-    return builder(
-      context,
-      workaround(mathText),
-      config.style ?? const TextStyle(),
-      false,
+    final match = exp.firstMatch(text.trim());
+    final mathText = match?[1] ?? '';
+    final style = (config.style ?? const TextStyle()).copyWith(
+      fontFamily: 'monospace',
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: config.getRich(TextSpan(text: mathText, style: style)),
     );
   }
 }
 
-/// Italic text component
+/// Inline math `\(...\)` rendered as monospace source (no LaTeX engine).
 class LatexMath extends InlineMd {
   @override
-  RegExp get exp => RegExp(
-    [
-      r"\\\((.*?)\\\)",
-      // r"(?<!\\)\$((?:\\.|[^$])*?)\$(?!\\)",
-    ].join("|"),
-    dotAll: true,
-  );
+  RegExp get exp => RegExp(r"\\\((.*?)\\\)", dotAll: true);
 
   @override
   InlineSpan span(
@@ -690,66 +635,12 @@ class LatexMath extends InlineMd {
     String text,
     final GptMarkdownConfig config,
   ) {
-    var p0 = exp.firstMatch(text.trim());
-    p0?.group(0);
-    String mathText = p0?[1]?.toString() ?? "";
-    var workaround = config.latexWorkaround ?? (String tex) => tex;
-    var builder =
-        config.latexBuilder ??
-        (BuildContext context, String tex, TextStyle textStyle, bool inline) =>
-            SelectableAdapter(
-              selectedText: tex,
-              child: Math.tex(
-                tex,
-                textStyle: textStyle,
-                mathStyle: MathStyle.display,
-                textScaleFactor: 1,
-                settings: const TexParserSettings(strict: Strict.ignore),
-                options: MathOptions(
-                  sizeUnderTextStyle: MathSize.large,
-                  color:
-                      config.style?.color ??
-                      DefaultTextStyle.of(context).style.color ??
-                      Colors.black,
-                  fontSize:
-                      config.style?.fontSize ??
-                      Theme.of(context).textTheme.bodyMedium?.fontSize,
-                  mathFontOptions: FontOptions(
-                    fontFamily: "Main",
-                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
-                    fontShape: FontStyle.normal,
-                  ),
-                  textFontOptions: FontOptions(
-                    fontFamily: "Main",
-                    fontWeight: config.style?.fontWeight ?? FontWeight.normal,
-                    fontShape: FontStyle.normal,
-                  ),
-                  style: MathStyle.display,
-                ),
-                onErrorFallback: (err) {
-                  return Text(
-                    workaround(mathText),
-                    textDirection: config.textDirection,
-                    style: textStyle.copyWith(
-                      color:
-                          (!kDebugMode)
-                              ? null
-                              : Theme.of(context).colorScheme.error,
-                    ),
-                  );
-                },
-              ),
-            );
-    return WidgetSpan(
-      alignment: PlaceholderAlignment.baseline,
-      baseline: TextBaseline.alphabetic,
-      child: builder(
-        context,
-        workaround(mathText),
-        config.style ?? const TextStyle(),
-        true,
-      ),
+    final match = exp.firstMatch(text.trim());
+    final mathText = match?[1] ?? '';
+    final style = (config.style ?? const TextStyle()).copyWith(
+      fontFamily: 'monospace',
     );
+    return TextSpan(text: mathText, style: style);
   }
 }
 class SourceTag extends InlineMd {
