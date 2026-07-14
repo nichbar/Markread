@@ -520,6 +520,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     final isSearchActive = isReady && state.isSearchActive;
     final isMarkdown =
         isReady && !state.isSourceCode && !state.isBinary;
+    final isSourceCodeModeOn =
+        isReady && (state.viewMode == ViewMode.raw || state.isBinary);
+    final canToggleSourceCodeMode = isReady && !state.isBinary;
 
     if (isSearchActive) {
       return PreferredSize(
@@ -541,10 +544,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
           onClear: () =>
               ref.read(viewerProvider.notifier).setSearchQuery(''),
           onBack: () => ref.read(viewerProvider.notifier).toggleSearch(),
-          modeLabel: state.isSourceCode
-              ? 'Source code'
-              : state.viewMode == ViewMode.raw
-                  ? 'Raw mode'
+          modeLabel: state.viewMode == ViewMode.raw || state.isBinary
+              ? 'Source code mode'
+              : state.isSourceCode
+                  ? 'Source code'
                   : 'Rendered mode',
           chromeColors: chromeColors,
         ),
@@ -579,8 +582,15 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
             style: const TextStyle(fontSize: 16),
             overflow: TextOverflow.ellipsis,
           ),
-          // Rebuild only the subtitle row when the active section changes.
-          if (isReady)
+          // Source code mode / binary: fixed subtitle. Otherwise section heading.
+          // Do not clear _sectionTitle when entering raw so it restores on exit.
+          if (isSourceCodeModeOn)
+            Text(
+              'SOURCE CODE MODE',
+              style: TextStyle(fontSize: 11, color: chromeColors.muted),
+              overflow: TextOverflow.ellipsis,
+            )
+          else if (isReady)
             ValueListenableBuilder<String>(
               valueListenable: _sectionTitle,
               builder: (context, sectionTitle, _) {
@@ -648,6 +658,26 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
                   });
                 }
                 break;
+              case 'source_code_mode':
+                {
+                  final current = ref.read(viewerProvider).value;
+                  if (current == null || current.isBinary) return;
+                  final saved = _scrollController.hasClients
+                      ? _scrollController.offset
+                      : null;
+                  ref.read(viewerProvider.notifier).toggleViewMode();
+                  if (saved != null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.jumpTo(saved.clamp(
+                          0.0,
+                          _scrollController.position.maxScrollExtent,
+                        ));
+                      }
+                    });
+                  }
+                }
+                break;
               case 'reader_surface':
                 {
                   final saved = _scrollController.offset;
@@ -705,6 +735,35 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
                   ],
                 ),
               ),
+            PopupMenuItem(
+              value: 'source_code_mode',
+              enabled: canToggleSourceCodeMode,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.code_off,
+                    color: canToggleSourceCodeMode
+                        ? chromeColors.content
+                        : chromeColors.muted,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Source code mode',
+                      style: TextStyle(
+                        color: canToggleSourceCodeMode
+                            ? chromeColors.content
+                            : chromeColors.muted,
+                      ),
+                    ),
+                  ),
+                  Switch(
+                    value: isSourceCodeModeOn,
+                    onChanged: null,
+                  ),
+                ],
+              ),
+            ),
             PopupMenuItem(
               value: 'reader_surface',
               child: Row(

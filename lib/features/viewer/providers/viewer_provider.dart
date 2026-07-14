@@ -192,7 +192,7 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
 
   void toggleViewMode() {
     final current = state.value;
-    if (current == null) return;
+    if (current == null || current.isBinary) return;
     final next =
         current.viewMode == ViewMode.rendered ? ViewMode.raw : ViewMode.rendered;
     state = AsyncData(current.copyWith(viewMode: next));
