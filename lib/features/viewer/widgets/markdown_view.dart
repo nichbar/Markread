@@ -9,6 +9,39 @@ import '../services/markdown_block_splitter.dart';
 import 'markdown_anchors.dart';
 import 'zoomable_area.dart';
 
+/// GitHub-style inline code (`code`): monospace, ~0.85em, padded rounded chip.
+///
+/// Light: #afb8c133 bg, #1f2328 text
+/// Dark:  #6e768166 bg, #e6edf3 text
+Widget _githubInlineCode(BuildContext context, String text, TextStyle style) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final bg = isDark
+      ? const Color(0x666E7681) // #6e7681 @ ~40%
+      : const Color(0x33AFB8C1); // #afb8c1 @ ~20%
+  final fg = isDark ? const Color(0xFFE6EDF3) : const Color(0xFF1F2328);
+  final baseSize = style.fontSize ?? 16.0;
+
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(
+      text,
+      style: style.copyWith(
+        fontFamily: 'monospace',
+        fontSize: baseSize * 0.85,
+        fontWeight: FontWeight.normal,
+        color: fg,
+        // Avoid double-painting if parent style carried a background Paint.
+        background: null,
+        backgroundColor: null,
+      ),
+    ),
+  );
+}
+
 class MarkdownView extends StatefulWidget {
   final String content;
   /// Original file size in bytes (not search-inflated display length).
@@ -759,6 +792,7 @@ class MarkdownViewState extends State<MarkdownView> {
                         style: stableStyle,
                         onLinkTap: widget.onLinkTap,
                         selectable: false,
+                        highlightBuilder: _githubInlineCode,
                         components: buildAnchoredComponentsForBlock(
                           headingKeys: _headingKeys,
                           headingIndex: block.headingIndex,
@@ -793,6 +827,7 @@ class MarkdownViewState extends State<MarkdownView> {
                 style: stableStyle,
                 onLinkTap: widget.onLinkTap,
                 selectable: false,
+                highlightBuilder: _githubInlineCode,
                 components: buildAnchoredComponents(_headingKeys),
                 inlineComponents: inlineComponents,
               ),
