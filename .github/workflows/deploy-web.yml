@@ -26,10 +26,12 @@ jobs:
         run: flutter pub get
 
       - name: Build web (WASM)
-        run: flutter build web --wasm --base-href /Markread/
+        # Custom domain (md.hellmo.de) serves at site root, not /Markread/
+        run: flutter build web --wasm --base-href /
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: build/web
+          cname: md.hellmo.de
