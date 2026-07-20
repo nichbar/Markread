@@ -68,13 +68,28 @@ class SearchMatchMd extends InlineMd {
 
 /// Heading component that attaches a [GlobalKey] to H1–H3 (non-empty title),
 /// matching [parseHeadings] index order.
+///
+/// Index modes:
+/// - [fixedIndex] set → use that absolute TOC index (virtualized heading block).
+/// - [fixedIndex] null + [sequential] true → parse-order counter (full-doc path).
+/// - [fixedIndex] null + [sequential] false → never attach a key (non-heading
+///   virtualized chunks; avoids every chunk restarting at index 0).
 class AnchoredHTag extends HTag {
-  AnchoredHTag(this.headingKeys);
+  AnchoredHTag({
+    this.fixedIndex,
+    this.headingKeys = const [],
+    this.sequential = true,
+  });
+
+  /// Absolute H1–H3 index for this chunk, or null when not a keyed heading block.
+  final int? fixedIndex;
+
+  /// When true and [fixedIndex] is null, assign keys in parse order.
+  final bool sequential;
 
   final List<GlobalKey> headingKeys;
 
-  /// Mutable parse-order counter. Reset by building a fresh instance each
-  /// [MarkdownView] build.
+  /// Mutable parse-order counter used only when [sequential] is true.
   int _nextIndex = 0;
 
   @override
@@ -97,8 +112,16 @@ class AnchoredHTag extends HTag {
       return child;
     }
 
-    final index = _nextIndex;
-    _nextIndex++;
+    final int index;
+    if (fixedIndex != null) {
+      index = fixedIndex!;
+    } else if (sequential) {
+      index = _nextIndex;
+      _nextIndex++;
+    } else {
+      return child;
+    }
+
     if (index < 0 || index >= headingKeys.length) {
       return child;
     }
@@ -108,6 +131,7 @@ class AnchoredHTag extends HTag {
 }
 
 /// Stock block components with [AnchoredHTag] substituted for [HTag].
+/// Full-document path (sequential parse-order keys).
 List<MarkdownComponent> buildAnchoredComponents(List<GlobalKey> headingKeys) {
   return [
     CodeBlockMd(),
@@ -115,7 +139,35 @@ List<MarkdownComponent> buildAnchoredComponents(List<GlobalKey> headingKeys) {
     NewLines(),
     BlockQuote(),
     TableMd(),
-    AnchoredHTag(headingKeys),
+    AnchoredHTag(headingKeys: headingKeys, sequential: true),
+    UnOrderedList(),
+    OrderedList(),
+    RadioButtonMd(),
+    CheckBoxMd(),
+    HrLine(),
+    IndentMd(),
+  ];
+}
+
+/// Per-block components for virtualized [ListView] items.
+///
+/// Pass [headingIndex] only for the block that *is* that absolute H1–H3;
+/// pass null for list items / paragraphs so no key is attached.
+List<MarkdownComponent> buildAnchoredComponentsForBlock({
+  required List<GlobalKey> headingKeys,
+  int? headingIndex,
+}) {
+  return [
+    CodeBlockMd(),
+    LatexMathMultiLine(),
+    NewLines(),
+    BlockQuote(),
+    TableMd(),
+    AnchoredHTag(
+      fixedIndex: headingIndex,
+      headingKeys: headingKeys,
+      sequential: false,
+    ),
     UnOrderedList(),
     OrderedList(),
     RadioButtonMd(),

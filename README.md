@@ -66,6 +66,22 @@ flutter build web
 
 > **Note:** The release APK targets `android-arm64` only, dropping armeabi-v7a and x86_64. This cuts APK size from ~57 MB to ~20 MB. R8 minification and resource shrinking are enabled in `android/app/build.gradle.kts`.
 
+### Scroll benchmark (large markdown)
+
+Profile-mode natural-fling bench for heavy markdown (open cost + scroll FPS). Device must be unlocked.
+
+The FPS HUD is **hidden by default**. It auto-shows when built with `MARKREAD_AUTO_BENCH=true` (as the script does), or toggle **Show FPS HUD** from the viewer overflow menu.
+
+```bash
+./scripts/bench_scroll.sh              # find device, build profile+auto-bench, run
+./scripts/bench_scroll.sh <serial>
+SKIP_BUILD=1 ./scripts/bench_scroll.sh # reuse installed APK
+```
+
+After launch, open a large markdown file on-device (Open File / share). Auto-flings start once the viewer loads.
+
+Findings: [`docs/perf/markdown-scroll-findings.md`](docs/perf/markdown-scroll-findings.md)
+
 ## Architecture
 
 - **State management**: Riverpod 3.x (`Notifier`/`AsyncNotifier` pattern, no code generation)

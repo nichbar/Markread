@@ -10,6 +10,7 @@ import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/preferences_provider.dart';
 import '../../../core/providers/reading_progress_provider.dart';
 import '../../../core/widgets/app_layout_body.dart';
+import '../../../core/widgets/platform_benchmark_hud.dart';
 import '../providers/viewer_provider.dart';
 import '../widgets/markdown_view.dart';
 import '../widgets/reading_progress_badge.dart';
@@ -29,6 +30,11 @@ class ViewerScreen extends ConsumerStatefulWidget {
 
 class _ViewerScreenState extends ConsumerState<ViewerScreen>
     with WidgetsBindingObserver {
+  /// Temporary: in-app auto fling for devices that block adb input injection.
+  /// Build with: --dart-define=MARKREAD_AUTO_BENCH=true
+  static const bool _autoBench =
+      bool.fromEnvironment('MARKREAD_AUTO_BENCH', defaultValue: false);
+
   bool _isReadingSurfaceDark = false;
   bool _isWordWrapEnabled = true;
   bool _isCodeBlockWrapEnabled = true;
@@ -43,6 +49,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
   int? _lastSavedCharOffset;
   bool _didAttemptResume = false;
   bool _isRestoring = false;
+  bool _autoBenchStarted = false;
+  /// Session-only; default off. Auto-on for MARKREAD_AUTO_BENCH profile runs.
+  bool _showBenchHud = _autoBench;
 
   // Badge state is isolated so scroll updates do not rebuild MarkdownView.
   final ValueNotifier<_ProgressBadgeState> _progressBadge =
@@ -76,6 +85,134 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     }
   }
 
+  DateTime? _lastScrollProbe;
+  double _lastScrollOffset = 0;
+  DateTime? _lastScrollSampleAt;
+
+  /// Natural ballistic flings via [ScrollPosition.goBallistic] (same physics as
+  /// a real finger fling). Used for deep-dive benches without adb swipe input.
+  Future<void> _runAutoBenchScroll() async {
+    debugPrint('[bench-md] auto-bench start (natural flings, wait settle)');
+    // Virtualized open is fast; wait briefly for first layout + maxExtent.
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    if (!mounted || !_scrollController.hasClients) {
+      debugPrint('[bench-md] auto-bench abort: no scroll clients');
+      return;
+    }
+    var maxExtent = _scrollController.position.maxScrollExtent;
+    debugPrint(
+      '[bench-md] auto-bench ready maxExtent=${maxExtent.toStringAsFixed(0)} '
+      'offset=${_scrollController.offset.toStringAsFixed(0)}',
+    );
+    if (maxExtent <= 0) return;
+
+    // Always start from top so reading-progress resume / estimate thrash does
+    // not leave us already at 100% with nothing to fling through.
+    _isRestoring = true;
+    _scrollController.jumpTo(0);
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    if (!mounted || !_scrollController.hasClients) return;
+    _isRestoring = false;
+    maxExtent = _scrollController.position.maxScrollExtent;
+    debugPrint(
+      '[bench-md] auto-bench from top maxExtent=${maxExtent.toStringAsFixed(0)} '
+      'offset=${_scrollController.offset.toStringAsFixed(0)}',
+    );
+
+    // Positive velocity increases offset (content moves up / scroll down).
+    // Higher velocities cover ~70k extent in fewer flings for faster benches.
+    const downVelocities = <double>[
+      12000,
+      14000,
+      16000,
+      14000,
+      18000,
+    ];
+    const upVelocities = <double>[-12000, -15000, -14000];
+
+    for (var i = 0; i < downVelocities.length; i++) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final v = downVelocities[i];
+      final before = _scrollController.offset;
+      debugPrint(
+        '[bench-md] fling down #$i v=${v.toStringAsFixed(0)} '
+        'from=${before.toStringAsFixed(0)}',
+      );
+      await _naturalFling(v);
+      if (!mounted || !_scrollController.hasClients) return;
+      debugPrint(
+        '[bench-md] fling down #$i landed '
+        'offset=${_scrollController.offset.toStringAsFixed(0)} '
+        'pct=${(_scrollController.offset / maxExtent * 100).toStringAsFixed(1)}',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+    }
+
+    for (var i = 0; i < upVelocities.length; i++) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final v = upVelocities[i];
+      final before = _scrollController.offset;
+      debugPrint(
+        '[bench-md] fling up #$i v=${v.toStringAsFixed(0)} '
+        'from=${before.toStringAsFixed(0)}',
+      );
+      await _naturalFling(v);
+      if (!mounted || !_scrollController.hasClients) return;
+      debugPrint(
+        '[bench-md] fling up #$i landed '
+        'offset=${_scrollController.offset.toStringAsFixed(0)} '
+        'pct=${(_scrollController.offset / maxExtent * 100).toStringAsFixed(1)}',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+    }
+
+    // A few more down flings if we bounced near top.
+    for (var i = 0; i < 3; i++) {
+      if (!mounted || !_scrollController.hasClients) return;
+      if (_scrollController.offset >= maxExtent - 8) break;
+      debugPrint('[bench-md] fling down extra #$i');
+      await _naturalFling(16000);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+
+    debugPrint('[bench-md] auto-bench done');
+  }
+
+  /// Fire a ballistic fling and wait until the scroll position is idle.
+  Future<void> _naturalFling(double velocity) async {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    // Same path as a real pointer fling end (ScrollPositionWithSingleContext).
+    if (position is! ScrollPositionWithSingleContext) {
+      debugPrint('[bench-md] fling unsupported position=${position.runtimeType}');
+      return;
+    }
+    position.goBallistic(velocity);
+
+    final scrolling = position.isScrollingNotifier;
+    if (!scrolling.value) {
+      // Simulation may be instantaneous at bounds.
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+      return;
+    }
+
+    final done = Completer<void>();
+    void listener() {
+      if (!scrolling.value && !done.isCompleted) {
+        done.complete();
+      }
+    }
+
+    scrolling.addListener(listener);
+    try {
+      await done.future.timeout(const Duration(seconds: 4));
+    } on TimeoutException {
+      debugPrint('[bench-md] fling wait timeout v=$velocity');
+    } finally {
+      scrolling.removeListener(listener);
+    }
+  }
+
   void _onScrollTick() {
     // Throttle heading updates to avoid per-frame work during fast flings.
     // Updating every ~100ms is imperceptible and prevents frame drops
@@ -84,6 +221,34 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     if (now.difference(_lastHeadingUpdate).inMilliseconds >= 100) {
       _lastHeadingUpdate = now;
       _updateActiveHeading();
+    }
+
+    // Temporary: scroll kinematics for markdown deep-dive.
+    if (_scrollController.hasClients) {
+      final offset = _scrollController.offset;
+      final maxExtent = _scrollController.position.maxScrollExtent;
+      final at = now;
+      if (_lastScrollSampleAt != null) {
+        final dtMs =
+            at.difference(_lastScrollSampleAt!).inMicroseconds / 1000.0;
+        if (dtMs > 0) {
+          final v = ((offset - _lastScrollOffset) / dtMs) * 1000.0; // px/s
+          if (_lastScrollProbe == null ||
+              now.difference(_lastScrollProbe!).inMilliseconds >= 250) {
+            _lastScrollProbe = now;
+            final pct =
+                maxExtent > 0 ? (100.0 * offset / maxExtent).clamp(0, 100) : 0.0;
+            debugPrint(
+              '[bench-scroll] offset=${offset.toStringAsFixed(0)} '
+              'max=${maxExtent.toStringAsFixed(0)} '
+              'pct=${pct.toStringAsFixed(1)} '
+              'vel=${v.toStringAsFixed(0)}px/s',
+            );
+          }
+        }
+      }
+      _lastScrollOffset = offset;
+      _lastScrollSampleAt = at;
     }
 
     if (_isRestoring) return;
@@ -255,6 +420,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     if (_didAttemptResume) return;
     if (state.status != ViewerStatus.loaded) return;
     if (state.fileByteLength <= 0 || state.fileContent.isEmpty) return;
+    // Auto-bench must measure open + fling from the top of the document.
+    if (_autoBench) {
+      _didAttemptResume = true;
+      debugPrint('[bench-md] skip reading-progress resume (auto-bench)');
+      return;
+    }
 
     _didAttemptResume = true;
 
@@ -462,6 +633,15 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       final state = next.value;
       if (state == null) return;
       unawaited(_tryResumeReadingProgress(state));
+      if (_autoBench &&
+          !_autoBenchStarted &&
+          state.status == ViewerStatus.loaded &&
+          state.viewMode == ViewMode.rendered &&
+          !state.isSourceCode &&
+          !state.isBinary) {
+        _autoBenchStarted = true;
+        unawaited(_runAutoBenchScroll());
+      }
     });
 
     final isSystemDark = Theme.of(context).brightness == Brightness.dark;
@@ -487,20 +667,38 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     );
     final readerColors = isSurfaceDark ? colorPair.dark : colorPair.light;
 
+    final modeLabel = () {
+      final state = viewerStateAsync.value;
+      if (state == null || state.status != ViewerStatus.loaded) {
+        return 'markdown · loading';
+      }
+      if (state.viewMode == ViewMode.raw || state.isBinary) {
+        return 'markdown · source';
+      }
+      if (state.isSourceCode) return 'markdown · code';
+      return 'markdown · rendered';
+    }();
+
     return Scaffold(
       backgroundColor: readerColors.surface,
       appBar: _buildAppBar(viewerStateAsync, chromeColors),
-      body: AppLayoutBody(
-        child: viewerStateAsync.when(
-          data: (state) =>
-              _buildBody(state, preferences, readerColors, chromeColors),
-          loading: () => _LoadingView(
-            fileName: widget.fileName,
-            chromeColors: chromeColors,
-          ),
-          error: (err, _) => _ErrorView(
-            message: 'Failed to load file: $err',
-            onRetry: () => context.go('/'),
+      body: BenchmarkHudHost(
+        label: modeLabel,
+        visible: _showBenchHud,
+        // Bottom-left so it does not cover the reading-progress badge.
+        alignment: Alignment.bottomLeft,
+        child: AppLayoutBody(
+          child: viewerStateAsync.when(
+            data: (state) =>
+                _buildBody(state, preferences, readerColors, chromeColors),
+            loading: () => _LoadingView(
+              fileName: widget.fileName,
+              chromeColors: chromeColors,
+            ),
+            error: (err, _) => _ErrorView(
+              message: 'Failed to load file: $err',
+              onRetry: () => context.go('/'),
+            ),
           ),
         ),
       ),
@@ -694,6 +892,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
                   });
                 }
                 break;
+              case 'bench_hud':
+                setState(() => _showBenchHud = !_showBenchHud);
+                break;
               case 'settings':
                 context.push('/settings');
                 break;
@@ -787,6 +988,25 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
                     _isReadingSurfaceDark ? 'Dark' : 'Light',
                     style:
                         TextStyle(fontSize: 11, color: chromeColors.muted),
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'bench_hud',
+              child: Row(
+                children: [
+                  Icon(Icons.speed, color: chromeColors.content),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _showBenchHud ? 'Hide FPS HUD' : 'Show FPS HUD',
+                      style: TextStyle(color: chromeColors.content),
+                    ),
+                  ),
+                  Switch(
+                    value: _showBenchHud,
+                    onChanged: null,
                   ),
                 ],
               ),
@@ -928,6 +1148,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     return MarkdownView(
       key: _markdownViewKey,
       content: displayContent,
+      // Sticky file size (not search-inflated display length) gates virtualization.
+      sourceByteLength: state.fileByteLength,
       fontSize: preferences.fontSize,
       lineHeight: preferences.lineHeight,
       textAlignment: preferences.textAlignment,
