@@ -6,41 +6,9 @@ import 'package:markread/third_party/gpt_markdown/theme.dart';
 import '../../../core/models/user_preferences.dart';
 import '../providers/viewer_provider.dart';
 import '../services/markdown_block_splitter.dart';
+import 'github_code_style.dart';
 import 'markdown_anchors.dart';
 import 'zoomable_area.dart';
-
-/// GitHub-style inline code (`code`): monospace, ~0.85em, padded rounded chip.
-///
-/// Light: #afb8c133 bg, #1f2328 text
-/// Dark:  #6e768166 bg, #e6edf3 text
-Widget _githubInlineCode(BuildContext context, String text, TextStyle style) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
-  final bg = isDark
-      ? const Color(0x666E7681) // #6e7681 @ ~40%
-      : const Color(0x33AFB8C1); // #afb8c1 @ ~20%
-  final fg = isDark ? const Color(0xFFE6EDF3) : const Color(0xFF1F2328);
-  final baseSize = style.fontSize ?? 16.0;
-
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-    decoration: BoxDecoration(
-      color: bg,
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Text(
-      text,
-      style: style.copyWith(
-        fontFamily: 'monospace',
-        fontSize: baseSize * 0.85,
-        fontWeight: FontWeight.normal,
-        color: fg,
-        // Avoid double-painting if parent style carried a background Paint.
-        background: null,
-        backgroundColor: null,
-      ),
-    ),
-  );
-}
 
 class MarkdownView extends StatefulWidget {
   final String content;
@@ -732,27 +700,52 @@ class MarkdownViewState extends State<MarkdownView> {
 
     final parentStyle = DefaultTextStyle.of(context).style;
     final resolvedColor = widget.textColor ?? parentStyle.color;
+    final effectiveFontSize = widget.fontSize * widget.fontScale;
     // Strip color to prevent MdWidget re-parsing on every animation frame
     // during AnimatedDefaultTextStyle transitions. Color is inherited via
     // DefaultTextStyle and heading theme overrides.
-    final stableStyle = parentStyle.copyWith(color: null);
+    //
+    // Keep scaled fontSize/height on config.style so WidgetSpan builders
+    // (inline `code`, fenced blocks) receive the display scale. Outer
+    // DefaultTextStyle alone is not enough: highlightBuilder bakes an
+    // absolute size from config.style, and MdWidget only regenerates spans
+    // when config.isSame is false.
+    final stableStyle = parentStyle.copyWith(
+      color: null,
+      fontSize: effectiveFontSize,
+      height: widget.lineHeight,
+    );
 
     // Build a GptMarkdownTheme that injects the reader's text color
     // into heading styles so that HTag components inherit it regardless
     // of how DefaultTextStyle propagates through WidgetSpan children.
+    //
+    // HTag bakes absolute fontSize from theme.h1–h6 (Material typography
+    // sized for ~16 body). Scale those sizes with the display body size so
+    // pinch / preference font scale affects headings the same as body text.
     final baseTheme = GptMarkdownThemeData(
       brightness: Theme.of(context).brightness,
     );
+    const themeBodySize = 16.0;
+    final headingScale = effectiveFontSize / themeBodySize;
+    TextStyle? scaledHeading(TextStyle? style) {
+      if (style == null) return null;
+      final baseSize = style.fontSize ?? themeBodySize;
+      return style.copyWith(
+        color: resolvedColor,
+        fontSize: baseSize * headingScale,
+      );
+    }
+
     final gptTheme = baseTheme.copyWith(
-      h1: baseTheme.h1?.copyWith(color: resolvedColor),
-      h2: baseTheme.h2?.copyWith(color: resolvedColor),
-      h3: baseTheme.h3?.copyWith(color: resolvedColor),
-      h4: baseTheme.h4?.copyWith(color: resolvedColor),
-      h5: baseTheme.h5?.copyWith(color: resolvedColor),
-      h6: baseTheme.h6?.copyWith(color: resolvedColor),
+      h1: scaledHeading(baseTheme.h1),
+      h2: scaledHeading(baseTheme.h2),
+      h3: scaledHeading(baseTheme.h3),
+      h4: scaledHeading(baseTheme.h4),
+      h5: scaledHeading(baseTheme.h5),
+      h6: scaledHeading(baseTheme.h6),
     );
 
-    final effectiveFontSize = widget.fontSize * widget.fontScale;
     final inlineComponents = buildAnchoredInlineComponents(_matchKeys);
 
     final Widget scrollChild;
@@ -792,7 +785,8 @@ class MarkdownViewState extends State<MarkdownView> {
                         style: stableStyle,
                         onLinkTap: widget.onLinkTap,
                         selectable: false,
-                        highlightBuilder: _githubInlineCode,
+                        highlightBuilder: githubInlineCode,
+                        codeBuilder: githubCodeBlock,
                         components: buildAnchoredComponentsForBlock(
                           headingKeys: _headingKeys,
                           headingIndex: block.headingIndex,
@@ -827,7 +821,8 @@ class MarkdownViewState extends State<MarkdownView> {
                 style: stableStyle,
                 onLinkTap: widget.onLinkTap,
                 selectable: false,
-                highlightBuilder: _githubInlineCode,
+                highlightBuilder: githubInlineCode,
+                codeBuilder: githubCodeBlock,
                 components: buildAnchoredComponents(_headingKeys),
                 inlineComponents: inlineComponents,
               ),

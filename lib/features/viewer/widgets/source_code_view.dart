@@ -1,6 +1,7 @@
 // lib/features/viewer/widgets/source_code_view.dart
 import 'package:flutter/material.dart';
 import 'package:markread/third_party/gpt_markdown/gpt_markdown.dart';
+import 'github_code_style.dart';
 import 'zoomable_area.dart';
 
 class SourceCodeView extends StatelessWidget {
@@ -32,6 +33,12 @@ class SourceCodeView extends StatelessWidget {
     final wrapped = '```$language\n$content\n```';
 
     final effectiveFontSize = fontSize * fontScale;
+    final stableStyle = DefaultTextStyle.of(context).style.copyWith(
+      color: null,
+      fontSize: effectiveFontSize,
+      height: lineHeight,
+      fontFamily: 'monospace',
+    );
 
     final codeWidget = DefaultTextStyle(
       style: TextStyle(
@@ -44,8 +51,10 @@ class SourceCodeView extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: GptMarkdown(
           wrapped,
-          style: DefaultTextStyle.of(context).style.copyWith(color: null),
+          style: stableStyle,
           onLinkTap: onLinkTap,
+          highlightBuilder: githubInlineCode,
+          codeBuilder: githubCodeBlock,
         ),
       ),
     );
