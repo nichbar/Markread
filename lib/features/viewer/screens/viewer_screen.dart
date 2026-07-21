@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/preferences_provider.dart';
 import '../../../core/providers/reading_progress_provider.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_layout_body.dart';
 import '../../../core/widgets/platform_benchmark_hud.dart';
 import '../providers/viewer_provider.dart';
@@ -689,8 +690,13 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
         alignment: Alignment.bottomLeft,
         child: AppLayoutBody(
           child: viewerStateAsync.when(
-            data: (state) =>
-                _buildBody(state, preferences, readerColors, chromeColors),
+            data: (state) => _buildBody(
+              state,
+              preferences,
+              readerColors,
+              chromeColors,
+              isSurfaceDark: isSurfaceDark,
+            ),
             loading: () => _LoadingView(
               fileName: widget.fileName,
               chromeColors: chromeColors,
@@ -1033,8 +1039,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     ViewerState state,
     UserPreferences preferences,
     ReaderColors readerColors,
-    ReaderColors chromeColors,
-  ) {
+    ReaderColors chromeColors, {
+    required bool isSurfaceDark,
+  }) {
     if (state.status == ViewerStatus.initial ||
         state.status == ViewerStatus.loading) {
       final name =
@@ -1050,6 +1057,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     if (state.fileContent.isEmpty) {
       return const Center(child: Text('This file is empty.'));
     }
+
+    // Reader surface can invert independently of app theme. Re-scope Theme so
+    // GitHub code tokens / GptMarkdownTheme (Theme.brightness) match the page.
+    final surfaceTheme = Theme.of(context).copyWith(
+      colorScheme: isSurfaceDark ? darkColorScheme : lightColorScheme,
+    );
 
     return Column(
       children: [
@@ -1067,30 +1080,33 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
             ),
           ),
         Expanded(
-          child: Container(
-            color: readerColors.surface,
-            child: DefaultTextStyle(
-              style: TextStyle(color: readerColors.content),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: _buildContent(state, preferences, readerColors),
-                  ),
-                  Positioned(
-                    right: 16,
-                    bottom: 16,
-                    child: ValueListenableBuilder<_ProgressBadgeState>(
-                      valueListenable: _progressBadge,
-                      builder: (context, badge, _) {
-                        return ReadingProgressBadge(
-                          percent: badge.percent,
-                          visible: badge.visible,
-                          colors: readerColors,
-                        );
-                      },
+          child: Theme(
+            data: surfaceTheme,
+            child: Container(
+              color: readerColors.surface,
+              child: DefaultTextStyle(
+                style: TextStyle(color: readerColors.content),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: _buildContent(state, preferences, readerColors),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      right: 16,
+                      bottom: 16,
+                      child: ValueListenableBuilder<_ProgressBadgeState>(
+                        valueListenable: _progressBadge,
+                        builder: (context, badge, _) {
+                          return ReadingProgressBadge(
+                            percent: badge.percent,
+                            visible: badge.visible,
+                            colors: readerColors,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
