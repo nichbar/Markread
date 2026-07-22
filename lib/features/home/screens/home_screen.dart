@@ -56,6 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final notifier = ref.read(viewerProvider.notifier);
     notifier.beginLoad(fileName: intentFile.name);
     if (mounted) {
+      // ACTION_VIEW / external share: replace stack so system back leaves the app.
       context.go('/viewer?name=${Uri.encodeComponent(intentFile.name)}');
     }
 
@@ -127,7 +128,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final notifier = ref.read(viewerProvider.notifier);
     notifier.beginLoad(fileName: file.name);
-    context.go('/viewer?name=${Uri.encodeComponent(file.name)}');
+    // push keeps Home under the viewer so system/app-bar back works.
+    context.push('/viewer?name=${Uri.encodeComponent(file.name)}');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       notifier.completeLoad(file, fileService);

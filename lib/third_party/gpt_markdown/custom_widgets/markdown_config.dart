@@ -219,6 +219,9 @@ class GptMarkdownConfig {
   }
 
   /// A method to check if the configuration is the same.
+  ///
+  /// Includes custom builders so remounts/rebuilds that only swap chrome
+  /// (code / table / highlight / link) still regenerate spans.
   bool isSame(GptMarkdownConfig other) {
     return style == other.style &&
         textAlign == other.textAlign &&
@@ -227,6 +230,14 @@ class GptMarkdownConfig {
         overflow == other.overflow &&
         followLinkColor == other.followLinkColor &&
         selectable == other.selectable &&
-        textDirection == other.textDirection;
+        textDirection == other.textDirection &&
+        codeBuilder == other.codeBuilder &&
+        highlightBuilder == other.highlightBuilder &&
+        tableBuilder == other.tableBuilder &&
+        linkBuilder == other.linkBuilder &&
+        imageBuilder == other.imageBuilder &&
+        sourceTagBuilder == other.sourceTagBuilder &&
+        orderedListBuilder == other.orderedListBuilder &&
+        unOrderedListBuilder == other.unOrderedListBuilder;
   }
 }

@@ -624,6 +624,15 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     );
   }
 
+  /// Return to Home (or previous route). Prefer pop when Home is under us.
+  void _navigateBack() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewerStateAsync = ref.watch(viewerProvider);
@@ -703,7 +712,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
             ),
             error: (err, _) => _ErrorView(
               message: 'Failed to load file: $err',
-              onRetry: () => context.go('/'),
+              onRetry: _navigateBack,
             ),
           ),
         ),
@@ -766,6 +775,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       backgroundColor: chromeColors.surface,
       foregroundColor: chromeColors.content,
       surfaceTintColor: Colors.transparent,
+      // Markdown: TOC in leading (unchanged). Non-markdown: back to Home.
+      // System back still works because Home opens viewer with push.
       leading: isMarkdown
           ? IconButton(
               icon: Icon(Icons.format_list_bulleted,
@@ -776,7 +787,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
           : IconButton(
               icon: const Icon(Icons.arrow_back),
               tooltip: 'Back',
-              onPressed: () => context.go('/'),
+              onPressed: _navigateBack,
             ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1051,7 +1062,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     if (state.status == ViewerStatus.error) {
       return _ErrorView(
         message: state.errorMessage ?? 'Unknown error',
-        onRetry: () => context.go('/'),
+        onRetry: _navigateBack,
       );
     }
     if (state.fileContent.isEmpty) {
@@ -1178,6 +1189,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       headingCount: state.headings.length,
       searchMatchCount:
           state.highlightContent.isNotEmpty ? state.searchMatchCount : 0,
+      markdownTheme: preferences.markdownTheme,
     );
   }
 

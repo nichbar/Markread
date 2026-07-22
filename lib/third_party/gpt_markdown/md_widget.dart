@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'custom_widgets/markdown_config.dart';
 import 'markdown_component.dart';
+import 'theme.dart';
 
 /// It creates a markdown widget closed to each other.
 class MdWidget extends StatefulWidget {
@@ -31,10 +32,23 @@ class MdWidget extends StatefulWidget {
 
 class _MdWidgetState extends State<MdWidget> {
   List<InlineSpan> list = [];
+  GptMarkdownThemeData? _lastTheme;
+
+  void _regenerate() {
+    list = MarkdownComponent.generate(
+      context,
+      widget.exp,
+      widget.config,
+      widget.includeGlobalComponents,
+    );
+    _lastTheme = GptMarkdownTheme.of(context);
+  }
 
   @override
   void initState() {
     super.initState();
+    // Theme/inherited widgets are safe after the first frame of dependencies;
+    // generate here and refresh in didChangeDependencies when theme shifts.
     list = MarkdownComponent.generate(
       widget.context,
       widget.exp,
@@ -44,16 +58,34 @@ class _MdWidgetState extends State<MdWidget> {
   }
 
   @override
-  void didUpdateWidget(covariant MdWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.exp != widget.exp ||
-        !oldWidget.config.isSame(widget.config)) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final theme = GptMarkdownTheme.of(context);
+    // Headings/links/HR bake GptMarkdownTheme into spans at generate time.
+    // Re-parse when ambient markdown theme changes (e.g. Settings → Markdown
+    // theme while ViewerScreen is still under the route stack).
+    if (_lastTheme == null) {
+      _lastTheme = theme;
+      // initState used widget.context; ensure first dependency-scoped parse.
       list = MarkdownComponent.generate(
         context,
         widget.exp,
         widget.config,
         widget.includeGlobalComponents,
       );
+      return;
+    }
+    if (!_lastTheme!.isSame(theme)) {
+      _regenerate();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant MdWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.exp != widget.exp ||
+        !oldWidget.config.isSame(widget.config)) {
+      _regenerate();
     }
   }
 

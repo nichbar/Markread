@@ -7,6 +7,7 @@ import '../../../core/models/user_preferences.dart';
 import '../providers/viewer_provider.dart';
 import '../services/markdown_block_splitter.dart';
 import 'github_code_style.dart';
+import 'github_markdown_theme.dart';
 import 'markdown_anchors.dart';
 import 'zoomable_area.dart';
 
@@ -26,6 +27,8 @@ class MarkdownView extends StatefulWidget {
   final ValueChanged<double>? onFontScaleChanged;
   final int headingCount;
   final int searchMatchCount;
+  /// Document chrome theme (headings/links/HR/code/tables). Default: GitHub.
+  final MarkdownTheme markdownTheme;
 
   /// Files at or above this size use the virtualized block [ListView].
   static const int kVirtualizeThresholdBytes = 100 * 1024;
@@ -49,6 +52,7 @@ class MarkdownView extends StatefulWidget {
     this.onFontScaleChanged,
     this.headingCount = 0,
     this.searchMatchCount = 0,
+    this.markdownTheme = MarkdownTheme.github,
   });
 
   @override
@@ -121,7 +125,9 @@ class MarkdownViewState extends State<MarkdownView> {
         oldWidget.lineHeight != widget.lineHeight ||
         oldWidget.isWordWrapEnabled != widget.isWordWrapEnabled ||
         oldWidget.textAlignment != widget.textAlignment ||
-        oldWidget.headingCount != widget.headingCount;
+        oldWidget.headingCount != widget.headingCount ||
+        // GitHub ↔ Default changes heading scale / table chrome heights.
+        oldWidget.markdownTheme != widget.markdownTheme;
 
     if (contentChanged || keysChanged || pathChanged) {
       _rebuildBlocks();
@@ -720,31 +726,42 @@ class MarkdownViewState extends State<MarkdownView> {
     // into heading styles so that HTag components inherit it regardless
     // of how DefaultTextStyle propagates through WidgetSpan children.
     //
-    // HTag bakes absolute fontSize from theme.h1–h6 (Material typography
-    // sized for ~16 body). Scale those sizes with the display body size so
-    // pinch / preference font scale affects headings the same as body text.
-    final baseTheme = GptMarkdownThemeData(
-      brightness: Theme.of(context).brightness,
-    );
-    const themeBodySize = 16.0;
-    final headingScale = effectiveFontSize / themeBodySize;
-    TextStyle? scaledHeading(TextStyle? style) {
-      if (style == null) return null;
-      final baseSize = style.fontSize ?? themeBodySize;
-      return style.copyWith(
-        color: resolvedColor,
-        fontSize: baseSize * headingScale,
+    // GitHub mode uses Primer tokens for headings/links/HR; standard mode
+    // keeps Material typography scaled to the display body size so pinch /
+    // preference font scale affects headings the same as body text.
+    final useGithub = widget.markdownTheme == MarkdownTheme.github;
+    final GptMarkdownThemeData gptTheme;
+    if (useGithub) {
+      gptTheme = buildGithubGptMarkdownTheme(
+        context: context,
+        textColor: resolvedColor ??
+            Theme.of(context).colorScheme.onSurface,
+        effectiveFontSize: effectiveFontSize,
+      );
+    } else {
+      final baseTheme = GptMarkdownThemeData(
+        brightness: Theme.of(context).brightness,
+      );
+      const themeBodySize = 16.0;
+      final headingScale = effectiveFontSize / themeBodySize;
+      TextStyle? scaledHeading(TextStyle? style) {
+        if (style == null) return null;
+        final baseSize = style.fontSize ?? themeBodySize;
+        return style.copyWith(
+          color: resolvedColor,
+          fontSize: baseSize * headingScale,
+        );
+      }
+
+      gptTheme = baseTheme.copyWith(
+        h1: scaledHeading(baseTheme.h1),
+        h2: scaledHeading(baseTheme.h2),
+        h3: scaledHeading(baseTheme.h3),
+        h4: scaledHeading(baseTheme.h4),
+        h5: scaledHeading(baseTheme.h5),
+        h6: scaledHeading(baseTheme.h6),
       );
     }
-
-    final gptTheme = baseTheme.copyWith(
-      h1: scaledHeading(baseTheme.h1),
-      h2: scaledHeading(baseTheme.h2),
-      h3: scaledHeading(baseTheme.h3),
-      h4: scaledHeading(baseTheme.h4),
-      h5: scaledHeading(baseTheme.h5),
-      h6: scaledHeading(baseTheme.h6),
-    );
 
     final inlineComponents = buildAnchoredInlineComponents(_matchKeys);
 
@@ -785,8 +802,11 @@ class MarkdownViewState extends State<MarkdownView> {
                         style: stableStyle,
                         onLinkTap: widget.onLinkTap,
                         selectable: false,
-                        highlightBuilder: githubInlineCode,
-                        codeBuilder: githubCodeBlock,
+                        highlightBuilder:
+                            useGithub ? githubInlineCode : null,
+                        codeBuilder: useGithub ? githubCodeBlock : null,
+                        tableBuilder:
+                            useGithub ? githubTableBuilder : null,
                         components: buildAnchoredComponentsForBlock(
                           headingKeys: _headingKeys,
                           headingIndex: block.headingIndex,
@@ -821,8 +841,9 @@ class MarkdownViewState extends State<MarkdownView> {
                 style: stableStyle,
                 onLinkTap: widget.onLinkTap,
                 selectable: false,
-                highlightBuilder: githubInlineCode,
-                codeBuilder: githubCodeBlock,
+                highlightBuilder: useGithub ? githubInlineCode : null,
+                codeBuilder: useGithub ? githubCodeBlock : null,
+                tableBuilder: useGithub ? githubTableBuilder : null,
                 components: buildAnchoredComponents(_headingKeys),
                 inlineComponents: inlineComponents,
               ),

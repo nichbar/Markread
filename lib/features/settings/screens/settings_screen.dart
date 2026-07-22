@@ -77,6 +77,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onChanged: (v) =>
                 ref.read(preferencesProvider.notifier).setReaderDarkTheme(v),
           ),
+          _buildDropdownTile(
+            label: 'Markdown theme',
+            value: prefs.markdownTheme,
+            items: MarkdownTheme.values,
+            display: _displayMarkdownTheme,
+            onChanged: (v) =>
+                ref.read(preferencesProvider.notifier).setMarkdownTheme(v),
+          ),
 
           // -- Font Size --
           _SectionHeader(title: 'Font Size'),
@@ -192,6 +200,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _displayReaderDarkTheme(ReaderDarkTheme t) => switch (t) {
         ReaderDarkTheme.dark => 'Dark',
         ReaderDarkTheme.amoled => 'AMOLED',
+      };
+
+  String _displayMarkdownTheme(MarkdownTheme t) => switch (t) {
+        MarkdownTheme.standard => 'Default',
+        MarkdownTheme.github => 'GitHub',
       };
 }
 

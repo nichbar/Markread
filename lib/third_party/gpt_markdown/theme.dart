@@ -244,6 +244,8 @@ class GptMarkdownTheme extends InheritedWidget {
 
   @override
   bool updateShouldNotify(GptMarkdownTheme oldWidget) {
-    return gptThemeData != oldWidget.gptThemeData;
+    // ThemeExtension uses identity equality; compare field-wise so markdown
+    // theme switches (GitHub ↔ Default) notify descendants.
+    return !gptThemeData.isSame(oldWidget.gptThemeData);
   }
 }
