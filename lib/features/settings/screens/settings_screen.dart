@@ -85,6 +85,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onChanged: (v) =>
                 ref.read(preferencesProvider.notifier).setMarkdownTheme(v),
           ),
+          _buildDropdownTile(
+            label: 'Render mode',
+            value: prefs.markdownRenderMode,
+            items: MarkdownRenderMode.values,
+            display: _displayMarkdownRenderMode,
+            onChanged: (v) => ref
+                .read(preferencesProvider.notifier)
+                .setMarkdownRenderMode(v),
+          ),
 
           // -- Font Size --
           _SectionHeader(title: 'Font Size'),
@@ -205,6 +214,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _displayMarkdownTheme(MarkdownTheme t) => switch (t) {
         MarkdownTheme.standard => 'Default',
         MarkdownTheme.github => 'GitHub',
+      };
+
+  String _displayMarkdownRenderMode(MarkdownRenderMode m) => switch (m) {
+        MarkdownRenderMode.auto => 'Auto (≥100KB performance)',
+        MarkdownRenderMode.performance => 'Performance',
+        MarkdownRenderMode.standard => 'Standard',
       };
 }
 

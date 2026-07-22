@@ -1190,6 +1190,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       searchMatchCount:
           state.highlightContent.isNotEmpty ? state.searchMatchCount : 0,
       markdownTheme: preferences.markdownTheme,
+      renderMode: preferences.markdownRenderMode,
     );
   }
 

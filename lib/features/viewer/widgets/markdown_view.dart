@@ -29,13 +29,32 @@ class MarkdownView extends StatefulWidget {
   final int searchMatchCount;
   /// Document chrome theme (headings/links/HR/code/tables). Default: GitHub.
   final MarkdownTheme markdownTheme;
+  /// Which render path to use (auto / always virtualized / always monolith).
+  final MarkdownRenderMode renderMode;
 
-  /// Files at or above this size use the virtualized block [ListView].
+  /// Files at or above this size use the virtualized block [ListView] in
+  /// [MarkdownRenderMode.auto].
   static const int kVirtualizeThresholdBytes = 100 * 1024;
 
   /// Gap matching gpt_markdown [NewLines]: always emits `"\n\n"` at
   /// `fontSize × height: 1.15` (multi-blank runs collapse to one gap).
   static double paragraphBreakGap(double fontSize) => fontSize * 1.15;
+
+  /// Resolve virtualized vs monolith from [renderMode] and document size.
+  static bool shouldVirtualize({
+    required MarkdownRenderMode renderMode,
+    required int? sourceByteLength,
+    required int contentLength,
+  }) {
+    switch (renderMode) {
+      case MarkdownRenderMode.performance:
+        return true;
+      case MarkdownRenderMode.standard:
+        return false;
+      case MarkdownRenderMode.auto:
+        return (sourceByteLength ?? contentLength) >= kVirtualizeThresholdBytes;
+    }
+  }
 
   const MarkdownView({
     super.key,
@@ -53,6 +72,7 @@ class MarkdownView extends StatefulWidget {
     this.headingCount = 0,
     this.searchMatchCount = 0,
     this.markdownTheme = MarkdownTheme.github,
+    this.renderMode = MarkdownRenderMode.auto,
   });
 
   @override
@@ -66,9 +86,11 @@ class MarkdownViewState extends State<MarkdownView> {
   late _BlockHeightCache _heightCache;
 
   /// Prefer sticky file bytes; fall back to content length when unknown.
-  bool get _useVirtualized =>
-      (widget.sourceByteLength ?? widget.content.length) >=
-      MarkdownView.kVirtualizeThresholdBytes;
+  bool get _useVirtualized => MarkdownView.shouldVirtualize(
+        renderMode: widget.renderMode,
+        sourceByteLength: widget.sourceByteLength,
+        contentLength: widget.content.length,
+      );
 
   /// headingIndex → block index (first match).
   Map<int, int> _headingToBlock = const {};
@@ -114,9 +136,11 @@ class MarkdownViewState extends State<MarkdownView> {
     }
 
     final contentChanged = oldWidget.content != widget.content;
-    final oldUseVirtualized =
-        (oldWidget.sourceByteLength ?? oldWidget.content.length) >=
-            MarkdownView.kVirtualizeThresholdBytes;
+    final oldUseVirtualized = MarkdownView.shouldVirtualize(
+      renderMode: oldWidget.renderMode,
+      sourceByteLength: oldWidget.sourceByteLength,
+      contentLength: oldWidget.content.length,
+    );
     final pathChanged = oldUseVirtualized != _useVirtualized;
     final layoutAffecting = contentChanged ||
         pathChanged ||
@@ -127,7 +151,8 @@ class MarkdownViewState extends State<MarkdownView> {
         oldWidget.textAlignment != widget.textAlignment ||
         oldWidget.headingCount != widget.headingCount ||
         // GitHub ↔ Default changes heading scale / table chrome heights.
-        oldWidget.markdownTheme != widget.markdownTheme;
+        oldWidget.markdownTheme != widget.markdownTheme ||
+        oldWidget.renderMode != widget.renderMode;
 
     if (contentChanged || keysChanged || pathChanged) {
       _rebuildBlocks();

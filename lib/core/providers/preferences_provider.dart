@@ -8,6 +8,7 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
   static const _keyReaderLightTheme = 'readerLightTheme';
   static const _keyReaderDarkTheme = 'readerDarkTheme';
   static const _keyMarkdownTheme = 'markdownTheme';
+  static const _keyMarkdownRenderMode = 'markdownRenderMode';
   static const _keyFontSize = 'fontSize';
   static const _keyLineHeight = 'lineHeight';
   static const _keyTextAlignment = 'textAlignment';
@@ -45,6 +46,13 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
         ? MarkdownTheme.values[markdownThemeIndex]
         : MarkdownTheme.github;
 
+    final markdownRenderModeIndex =
+        prefs.getInt(_keyMarkdownRenderMode) ?? MarkdownRenderMode.auto.index;
+    final markdownRenderMode =
+        markdownRenderModeIndex < MarkdownRenderMode.values.length
+            ? MarkdownRenderMode.values[markdownRenderModeIndex]
+            : MarkdownRenderMode.auto;
+
     final fontSize = prefs.getDouble(_keyFontSize) ?? 16.0;
     final lineHeight = prefs.getDouble(_keyLineHeight) ?? 1.6;
     final textAlignmentIndex = prefs.getInt(_keyTextAlignment) ?? 0;
@@ -58,6 +66,7 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
       readerLightTheme: readerLightTheme,
       readerDarkTheme: readerDarkTheme,
       markdownTheme: markdownTheme,
+      markdownRenderMode: markdownRenderMode,
       fontSize: fontSize,
       lineHeight: lineHeight,
       textAlignment: textAlignment,
@@ -86,6 +95,12 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyMarkdownTheme, theme.index);
     state = state.copyWith(markdownTheme: theme);
+  }
+
+  Future<void> setMarkdownRenderMode(MarkdownRenderMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyMarkdownRenderMode, mode.index);
+    state = state.copyWith(markdownRenderMode: mode);
   }
 
   Future<void> setFontSize(double size) async {
