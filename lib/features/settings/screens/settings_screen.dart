@@ -192,7 +192,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const ListTile(
             title: Text('Version'),
-            subtitle: Text('1.0.5'),
+            subtitle: Text('1.0.6'),
           ),
           const SizedBox(height: 32),
         ],
