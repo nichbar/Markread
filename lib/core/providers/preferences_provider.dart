@@ -5,13 +5,15 @@ import '../models/user_preferences.dart';
 
 class PreferencesNotifier extends Notifier<UserPreferences> {
   static const _keyAppThemeMode = 'appThemeMode';
-  static const _keyReaderLightTheme = 'readerLightTheme';
-  static const _keyReaderDarkTheme = 'readerDarkTheme';
   static const _keyMarkdownTheme = 'markdownTheme';
   static const _keyMarkdownRenderMode = 'markdownRenderMode';
   static const _keyFontSize = 'fontSize';
   static const _keyLineHeight = 'lineHeight';
   static const _keyTextAlignment = 'textAlignment';
+
+  // Removed preference keys (cleared on load so stale values do not linger).
+  static const _legacyKeyReaderLightTheme = 'readerLightTheme';
+  static const _legacyKeyReaderDarkTheme = 'readerDarkTheme';
 
   @override
   UserPreferences build() {
@@ -22,22 +24,14 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
   Future<void> _loadFromSharedPreferences() async {
     final prefs = await SharedPreferences.getInstance();
 
+    // Drop removed reader palette prefs if present.
+    await prefs.remove(_legacyKeyReaderLightTheme);
+    await prefs.remove(_legacyKeyReaderDarkTheme);
+
     final appThemeModeIndex = prefs.getInt(_keyAppThemeMode) ?? 0;
     final appThemeMode = appThemeModeIndex < AppThemeMode.values.length
         ? AppThemeMode.values[appThemeModeIndex]
         : AppThemeMode.system;
-
-    final readerLightThemeIndex = prefs.getInt(_keyReaderLightTheme) ?? 0;
-    final readerLightTheme =
-        readerLightThemeIndex < ReaderLightTheme.values.length
-            ? ReaderLightTheme.values[readerLightThemeIndex]
-            : ReaderLightTheme.light;
-
-    final readerDarkThemeIndex = prefs.getInt(_keyReaderDarkTheme) ?? 0;
-    final readerDarkTheme =
-        readerDarkThemeIndex < ReaderDarkTheme.values.length
-            ? ReaderDarkTheme.values[readerDarkThemeIndex]
-            : ReaderDarkTheme.dark;
 
     // Default product theme is GitHub when no key is stored.
     final markdownThemeIndex =
@@ -63,8 +57,6 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
 
     state = UserPreferences(
       appThemeMode: appThemeMode,
-      readerLightTheme: readerLightTheme,
-      readerDarkTheme: readerDarkTheme,
       markdownTheme: markdownTheme,
       markdownRenderMode: markdownRenderMode,
       fontSize: fontSize,
@@ -77,18 +69,6 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAppThemeMode, mode.index);
     state = state.copyWith(appThemeMode: mode);
-  }
-
-  Future<void> setReaderLightTheme(ReaderLightTheme theme) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyReaderLightTheme, theme.index);
-    state = state.copyWith(readerLightTheme: theme);
-  }
-
-  Future<void> setReaderDarkTheme(ReaderDarkTheme theme) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyReaderDarkTheme, theme.index);
-    state = state.copyWith(readerDarkTheme: theme);
   }
 
   Future<void> setMarkdownTheme(MarkdownTheme theme) async {

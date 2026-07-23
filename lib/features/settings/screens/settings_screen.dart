@@ -62,22 +62,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // -- Reader --
           _SectionHeader(title: 'Reader'),
           _buildDropdownTile(
-            label: 'Reader light theme',
-            value: prefs.readerLightTheme,
-            items: ReaderLightTheme.values,
-            display: _displayReaderLightTheme,
-            onChanged: (v) =>
-                ref.read(preferencesProvider.notifier).setReaderLightTheme(v),
-          ),
-          _buildDropdownTile(
-            label: 'Reader dark theme',
-            value: prefs.readerDarkTheme,
-            items: ReaderDarkTheme.values,
-            display: _displayReaderDarkTheme,
-            onChanged: (v) =>
-                ref.read(preferencesProvider.notifier).setReaderDarkTheme(v),
-          ),
-          _buildDropdownTile(
             label: 'Markdown theme',
             value: prefs.markdownTheme,
             items: MarkdownTheme.values,
@@ -200,16 +184,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
-
-  String _displayReaderLightTheme(ReaderLightTheme t) => switch (t) {
-        ReaderLightTheme.light => 'Light',
-        ReaderLightTheme.sepia => 'Sepia',
-      };
-
-  String _displayReaderDarkTheme(ReaderDarkTheme t) => switch (t) {
-        ReaderDarkTheme.dark => 'Dark',
-        ReaderDarkTheme.amoled => 'AMOLED',
-      };
 
   String _displayMarkdownTheme(MarkdownTheme t) => switch (t) {
         MarkdownTheme.standard => 'Default',

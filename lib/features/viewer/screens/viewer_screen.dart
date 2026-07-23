@@ -662,20 +662,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     };
     final isSurfaceDark = _isReadingSurfaceDark ? !isBaseDark : isBaseDark;
 
-    final activeReaderLightTheme = preferences.readerLightTheme;
-    final activeReaderDarkTheme = preferences.readerDarkTheme;
-
-    final chromeColors = viewerChromeColors(
-      readerLightTheme: activeReaderLightTheme,
-      readerDarkTheme: activeReaderDarkTheme,
-      isSurfaceDark: isSurfaceDark,
-    );
-
-    final colorPair = resolveReaderColorPair(
-      readerLightTheme: activeReaderLightTheme,
-      readerDarkTheme: activeReaderDarkTheme,
-    );
-    final readerColors = isSurfaceDark ? colorPair.dark : colorPair.light;
+    final readerColors = resolveReaderColors(isSurfaceDark: isSurfaceDark);
+    final chromeColors = readerColors;
 
     final modeLabel = () {
       final state = viewerStateAsync.value;
