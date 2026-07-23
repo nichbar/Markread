@@ -17,6 +17,7 @@ Since this is a Flutter app, the APK size will be larger than [MarkReader](https
 - **Table of contents** with heading navigation
 - **Zoomable text** with pinch-to-zoom
 - **Reading themes**: Light, Sepia, Dark, AMOLED — with independent light/dark reader surface toggle
+- **Blue Topaz markdown theme** (light blue-cascade / dark rainbow headings), selectable in Settings
 - **Customizable reading**: font size, line height, text alignment
 - **Word wrap** and **code block wrap** toggles
 - **Android intent support**: open markdown files from other apps via "Open with..."
@@ -106,6 +107,8 @@ lib/
 ## Credits
 
 The original Android version of this app: [mark-reader](https://github.com/usamaiqb/mark-reader) by [usamaiqb](https://github.com/usamaiqb).
+
+Markdown theme **Blue Topaz** is adapted from [typora-blue-topaz-theme](https://github.com/qishaoyumu/typora-blue-topaz-theme) by [qishaoyumu](https://github.com/qishaoyumu) (MIT; upstream Obsidian Blue Topaz by whyt-byte).
 
 ## License
 

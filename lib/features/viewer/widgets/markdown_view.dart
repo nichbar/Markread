@@ -7,6 +7,8 @@ import 'package:markread/third_party/gpt_markdown/theme.dart';
 import '../../../core/models/user_preferences.dart';
 import '../providers/viewer_provider.dart';
 import '../services/markdown_block_splitter.dart';
+import 'blue_topaz_code_style.dart';
+import 'blue_topaz_markdown_theme.dart';
 import 'github_code_style.dart';
 import 'github_markdown_theme.dart';
 import 'markdown_anchors.dart';
@@ -756,52 +758,67 @@ class MarkdownViewState extends State<MarkdownView> {
     // into heading styles so that HTag components inherit it regardless
     // of how DefaultTextStyle propagates through WidgetSpan children.
     //
-    // GitHub mode uses Primer tokens for headings/links/HR; standard mode
-    // keeps Material typography scaled to the display body size so pinch /
-    // preference font scale affects headings the same as body text.
-    final useGithub = widget.markdownTheme == MarkdownTheme.github;
-    final GptMarkdownThemeData gptTheme;
-    if (useGithub) {
-      gptTheme = buildGithubGptMarkdownTheme(
-        context: context,
-        textColor: resolvedColor ??
-            Theme.of(context).colorScheme.onSurface,
-        effectiveFontSize: effectiveFontSize,
-      );
-    } else {
-      final baseTheme = GptMarkdownThemeData(
-        brightness: Theme.of(context).brightness,
-      );
-      const themeBodySize = 16.0;
-      final headingScale = effectiveFontSize / themeBodySize;
-      TextStyle? scaledHeading(TextStyle? style) {
-        if (style == null) return null;
-        final baseSize = style.fontSize ?? themeBodySize;
-        return style.copyWith(
-          color: resolvedColor,
-          fontSize: baseSize * headingScale,
-        );
-      }
+    // GitHub / Blue Topaz modes use their own tokens for headings/links/HR;
+    // standard mode keeps Material typography scaled to the display body
+    // size so pinch / preference font scale affects headings the same as
+    // body text.
+    final resolvedTextColor =
+        resolvedColor ?? Theme.of(context).colorScheme.onSurface;
+    late final GptMarkdownThemeData gptTheme;
+    late final HighlightBuilder inlineCodeBuilder;
+    late final CodeBlockBuilder fencedCodeBuilder;
+    late final TableBuilder? themedTableBuilder;
 
-      gptTheme = baseTheme.copyWith(
-        h1: scaledHeading(baseTheme.h1),
-        h2: scaledHeading(baseTheme.h2),
-        h3: scaledHeading(baseTheme.h3),
-        h4: scaledHeading(baseTheme.h4),
-        h5: scaledHeading(baseTheme.h5),
-        h6: scaledHeading(baseTheme.h6),
-      );
+    switch (widget.markdownTheme) {
+      case MarkdownTheme.github:
+        gptTheme = buildGithubGptMarkdownTheme(
+          context: context,
+          textColor: resolvedTextColor,
+          effectiveFontSize: effectiveFontSize,
+        );
+        inlineCodeBuilder = githubInlineCode;
+        fencedCodeBuilder = githubCodeBlock;
+        themedTableBuilder = githubTableBuilder;
+      case MarkdownTheme.blueTopaz:
+        gptTheme = buildBlueTopazGptMarkdownTheme(
+          context: context,
+          textColor: resolvedTextColor,
+          effectiveFontSize: effectiveFontSize,
+        );
+        inlineCodeBuilder = blueTopazInlineCode;
+        fencedCodeBuilder = blueTopazCodeBlock;
+        themedTableBuilder = blueTopazTableBuilder;
+      case MarkdownTheme.standard:
+        final baseTheme = GptMarkdownThemeData(
+          brightness: Theme.of(context).brightness,
+        );
+        const themeBodySize = 16.0;
+        final headingScale = effectiveFontSize / themeBodySize;
+        TextStyle? scaledHeading(TextStyle? style) {
+          if (style == null) return null;
+          final baseSize = style.fontSize ?? themeBodySize;
+          return style.copyWith(
+            color: resolvedColor,
+            fontSize: baseSize * headingScale,
+          );
+        }
+
+        gptTheme = baseTheme.copyWith(
+          h1: scaledHeading(baseTheme.h1),
+          h2: scaledHeading(baseTheme.h2),
+          h3: scaledHeading(baseTheme.h3),
+          h4: scaledHeading(baseTheme.h4),
+          h5: scaledHeading(baseTheme.h5),
+          h6: scaledHeading(baseTheme.h6),
+        );
+        // Always use our code builders so search can paint inside
+        // fenced/inline code.
+        inlineCodeBuilder = defaultInlineCode;
+        fencedCodeBuilder = defaultCodeBlock;
+        themedTableBuilder = null;
     }
 
     final inlineComponents = buildAnchoredInlineComponents(_matchKeys);
-
-    // Always use our code builders so search can paint inside fenced/inline
-    // code. GitHub theme keeps Primer chrome; default theme uses lighter
-    // chrome that still supports paint-time query highlights.
-    final HighlightBuilder inlineCodeBuilder =
-        useGithub ? githubInlineCode : defaultInlineCode;
-    final CodeBlockBuilder fencedCodeBuilder =
-        useGithub ? githubCodeBlock : defaultCodeBlock;
 
     final Widget scrollChild;
     if (_useVirtualized) {
@@ -842,8 +859,7 @@ class MarkdownViewState extends State<MarkdownView> {
                         selectable: false,
                         highlightBuilder: inlineCodeBuilder,
                         codeBuilder: fencedCodeBuilder,
-                        tableBuilder:
-                            useGithub ? githubTableBuilder : null,
+                        tableBuilder: themedTableBuilder,
                         components: buildAnchoredComponentsForBlock(
                           headingKeys: _headingKeys,
                           headingIndex: block.headingIndex,
@@ -880,7 +896,7 @@ class MarkdownViewState extends State<MarkdownView> {
                 selectable: false,
                 highlightBuilder: inlineCodeBuilder,
                 codeBuilder: fencedCodeBuilder,
-                tableBuilder: useGithub ? githubTableBuilder : null,
+                tableBuilder: themedTableBuilder,
                 components: buildAnchoredComponents(_headingKeys),
                 inlineComponents: inlineComponents,
               ),

@@ -214,6 +214,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _displayMarkdownTheme(MarkdownTheme t) => switch (t) {
         MarkdownTheme.standard => 'Default',
         MarkdownTheme.github => 'GitHub',
+        MarkdownTheme.blueTopaz => 'Blue Topaz',
       };
 
   String _displayMarkdownRenderMode(MarkdownRenderMode m) => switch (m) {

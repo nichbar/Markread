@@ -9,7 +9,7 @@ enum ReadingTextAlign { left, justified }
 
 /// Document chrome for rendered markdown (headings, links, HR, code, tables).
 /// Reader surface colors still come from light/dark reader prefs.
-enum MarkdownTheme { standard, github }
+enum MarkdownTheme { standard, github, blueTopaz }
 
 /// Markdown render implementation.
 ///
