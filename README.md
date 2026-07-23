@@ -1,4 +1,4 @@
-# MarkRead
+# Markread
 
 A minimal, read-only Markdown reader for Android and web.
 
