@@ -12,6 +12,8 @@ import 'blue_topaz_markdown_theme.dart';
 import 'github_code_style.dart';
 import 'github_markdown_theme.dart';
 import 'markdown_anchors.dart';
+import 'monospace_code_style.dart';
+import 'monospace_markdown_theme.dart';
 import 'search_code_highlight.dart';
 import 'zoomable_area.dart';
 
@@ -748,20 +750,25 @@ class MarkdownViewState extends State<MarkdownView> {
     // DefaultTextStyle alone is not enough: highlightBuilder bakes an
     // absolute size from config.style, and MdWidget only regenerates spans
     // when config.isSame is false.
+    //
+    // Monospace theme also forces body fontFamily so spans match source-like
+    // chrome; other themes leave family unset (Material default).
+    final useMonospaceBody = widget.markdownTheme == MarkdownTheme.monospace;
     final stableStyle = parentStyle.copyWith(
       color: null,
       fontSize: effectiveFontSize,
       height: widget.lineHeight,
+      fontFamily: useMonospaceBody ? 'monospace' : null,
     );
 
     // Build a GptMarkdownTheme that injects the reader's text color
     // into heading styles so that HTag components inherit it regardless
     // of how DefaultTextStyle propagates through WidgetSpan children.
     //
-    // GitHub / Blue Topaz modes use their own tokens for headings/links/HR;
-    // standard mode keeps Material typography scaled to the display body
-    // size so pinch / preference font scale affects headings the same as
-    // body text.
+    // GitHub / Blue Topaz / Monospace modes use their own tokens for
+    // headings/links/HR; standard mode keeps Material typography scaled to
+    // the display body size so pinch / preference font scale affects
+    // headings the same as body text.
     final resolvedTextColor =
         resolvedColor ?? Theme.of(context).colorScheme.onSurface;
     late final GptMarkdownThemeData gptTheme;
@@ -788,6 +795,15 @@ class MarkdownViewState extends State<MarkdownView> {
         inlineCodeBuilder = blueTopazInlineCode;
         fencedCodeBuilder = blueTopazCodeBlock;
         themedTableBuilder = blueTopazTableBuilder;
+      case MarkdownTheme.monospace:
+        gptTheme = buildMonospaceGptMarkdownTheme(
+          context: context,
+          textColor: resolvedTextColor,
+          effectiveFontSize: effectiveFontSize,
+        );
+        inlineCodeBuilder = monospaceInlineCode;
+        fencedCodeBuilder = monospaceCodeBlock;
+        themedTableBuilder = monospaceTableBuilder;
       case MarkdownTheme.standard:
         final baseTheme = GptMarkdownThemeData(
           brightness: Theme.of(context).brightness,
@@ -831,6 +847,7 @@ class MarkdownViewState extends State<MarkdownView> {
             style: TextStyle(
               fontSize: effectiveFontSize,
               height: widget.lineHeight,
+              fontFamily: useMonospaceBody ? 'monospace' : null,
             ),
             textAlign: textAlign,
             child: ListView.custom(
@@ -884,6 +901,7 @@ class MarkdownViewState extends State<MarkdownView> {
             style: TextStyle(
               fontSize: effectiveFontSize,
               height: widget.lineHeight,
+              fontFamily: useMonospaceBody ? 'monospace' : null,
             ),
             textAlign: textAlign,
             child: SingleChildScrollView(
