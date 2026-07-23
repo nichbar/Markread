@@ -62,9 +62,14 @@ class SourceCodeView extends StatelessWidget {
       ),
     );
 
-    final scoped = SearchHighlightScope(
-      query: searchQuery,
-      child: codeWidget,
+    // Source-code mode is one big fence; follow document wrap, not a separate
+    // code-block wrap setting.
+    final scoped = CodeBlockWrapScope(
+      wrap: isWordWrapEnabled,
+      child: SearchHighlightScope(
+        query: searchQuery,
+        child: codeWidget,
+      ),
     );
 
     if (!isWordWrapEnabled) {

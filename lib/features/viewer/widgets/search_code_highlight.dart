@@ -26,6 +26,50 @@ class SearchHighlightScope extends InheritedWidget {
   }
 }
 
+/// Whether fenced code blocks should soft-wrap long lines.
+///
+/// Used by theme code builders (signature is fixed by gpt_markdown's
+/// [CodeBlockBuilder]). Defaults to wrap when no scope is present.
+class CodeBlockWrapScope extends InheritedWidget {
+  const CodeBlockWrapScope({
+    super.key,
+    required this.wrap,
+    required super.child,
+  });
+
+  final bool wrap;
+
+  static CodeBlockWrapScope? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<CodeBlockWrapScope>();
+  }
+
+  static bool wrapOf(BuildContext context) {
+    return maybeOf(context)?.wrap ?? true;
+  }
+
+  @override
+  bool updateShouldNotify(CodeBlockWrapScope oldWidget) {
+    return wrap != oldWidget.wrap;
+  }
+}
+
+/// Fenced code body: soft-wrap when [wrap] is true, else horizontal scroll.
+Widget fencedCodeBody({
+  required bool wrap,
+  required EdgeInsetsGeometry padding,
+  required TextSpan textSpan,
+}) {
+  final text = SelectableText.rich(textSpan);
+  if (wrap) {
+    return Padding(padding: padding, child: text);
+  }
+  return SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    padding: padding,
+    child: text,
+  );
+}
+
 /// Same yellow family as [SearchMatchMd] body highlights.
 Color searchHighlightBackground(Brightness brightness) {
   return brightness == Brightness.dark

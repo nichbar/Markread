@@ -233,22 +233,20 @@ class _GithubCodeBlockState extends State<_GithubCodeBlock> {
             ),
           ),
           Divider(height: 1, thickness: 1, color: tokens.border),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          fencedCodeBody(
+            wrap: CodeBlockWrapScope.wrapOf(context),
             padding: EdgeInsets.all(bodyPad),
-            child: SelectableText.rich(
-              buildQueryHighlightTextSpan(
-                text: widget.codes,
-                query: SearchHighlightScope.queryOf(context),
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: codeSize,
-                  height: 1.45,
-                  color: tokens.blockFg,
-                ),
-                highlightBg: searchHighlightBackground(
-                  Theme.of(context).brightness,
-                ),
+            textSpan: buildQueryHighlightTextSpan(
+              text: widget.codes,
+              query: SearchHighlightScope.queryOf(context),
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: codeSize,
+                height: 1.45,
+                color: tokens.blockFg,
+              ),
+              highlightBg: searchHighlightBackground(
+                Theme.of(context).brightness,
               ),
             ),
           ),
@@ -332,16 +330,14 @@ class _DefaultCodeBlock extends StatelessWidget {
               child: Text(name, style: theme.textTheme.labelMedium),
             ),
           if (name.isNotEmpty) const Divider(height: 1),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          fencedCodeBody(
+            wrap: CodeBlockWrapScope.wrapOf(context),
             padding: const EdgeInsets.all(16),
-            child: SelectableText.rich(
-              buildQueryHighlightTextSpan(
-                text: codes,
-                query: query,
-                style: style,
-                highlightBg: searchHighlightBackground(theme.brightness),
-              ),
+            textSpan: buildQueryHighlightTextSpan(
+              text: codes,
+              query: query,
+              style: style,
+              highlightBg: searchHighlightBackground(theme.brightness),
             ),
           ),
         ],

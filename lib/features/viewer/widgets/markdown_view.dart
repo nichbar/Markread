@@ -26,6 +26,8 @@ class MarkdownView extends StatefulWidget {
   final double lineHeight;
   final ReadingTextAlign textAlignment;
   final bool isWordWrapEnabled;
+  /// Soft-wrap long lines inside fenced ``` code blocks (when word wrap is on).
+  final bool isCodeBlockWrapEnabled;
   final ScrollController? scrollController;
   final Color? textColor;
   final void Function(String url, String title)? onLinkTap;
@@ -72,6 +74,7 @@ class MarkdownView extends StatefulWidget {
     this.lineHeight = 1.6,
     this.textAlignment = ReadingTextAlign.left,
     this.isWordWrapEnabled = true,
+    this.isCodeBlockWrapEnabled = true,
     this.scrollController,
     this.textColor,
     this.onLinkTap,
@@ -157,6 +160,7 @@ class MarkdownViewState extends State<MarkdownView> {
         oldWidget.fontSize != widget.fontSize ||
         oldWidget.lineHeight != widget.lineHeight ||
         oldWidget.isWordWrapEnabled != widget.isWordWrapEnabled ||
+        oldWidget.isCodeBlockWrapEnabled != widget.isCodeBlockWrapEnabled ||
         oldWidget.textAlignment != widget.textAlignment ||
         oldWidget.headingCount != widget.headingCount ||
         // GitHub ↔ Default changes heading scale / table chrome heights.
@@ -953,12 +957,15 @@ class MarkdownViewState extends State<MarkdownView> {
       }
     }
 
-    return SearchHighlightScope(
-      query: widget.searchQuery,
-      child: ZoomableArea(
-        scale: widget.fontScale,
-        onScaleChanged: widget.onFontScaleChanged,
-        child: result,
+    return CodeBlockWrapScope(
+      wrap: widget.isCodeBlockWrapEnabled,
+      child: SearchHighlightScope(
+        query: widget.searchQuery,
+        child: ZoomableArea(
+          scale: widget.fontScale,
+          onScaleChanged: widget.onFontScaleChanged,
+          child: result,
+        ),
       ),
     );
   }

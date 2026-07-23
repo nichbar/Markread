@@ -1170,6 +1170,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       lineHeight: preferences.lineHeight,
       textAlignment: preferences.textAlignment,
       isWordWrapEnabled: _isWordWrapEnabled,
+      isCodeBlockWrapEnabled: _isCodeBlockWrapEnabled,
       scrollController: _scrollController,
       textColor: readerColors.content,
       onLinkTap: _onLinkTap,

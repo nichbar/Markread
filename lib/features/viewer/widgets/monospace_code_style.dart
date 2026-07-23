@@ -221,25 +221,23 @@ class _MonospaceCodeBlockState extends State<_MonospaceCodeBlock> {
               ],
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          fencedCodeBody(
+            wrap: CodeBlockWrapScope.wrapOf(context),
             padding: EdgeInsets.symmetric(
               horizontal: bodyPadH,
               vertical: bodyPadV,
             ),
-            child: SelectableText.rich(
-              buildQueryHighlightTextSpan(
-                text: widget.codes,
-                query: SearchHighlightScope.queryOf(context),
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: codeSize,
-                  height: 1.45,
-                  color: tokens.blockFg,
-                ),
-                highlightBg: searchHighlightBackground(
-                  Theme.of(context).brightness,
-                ),
+            textSpan: buildQueryHighlightTextSpan(
+              text: widget.codes,
+              query: SearchHighlightScope.queryOf(context),
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: codeSize,
+                height: 1.45,
+                color: tokens.blockFg,
+              ),
+              highlightBg: searchHighlightBackground(
+                Theme.of(context).brightness,
               ),
             ),
           ),

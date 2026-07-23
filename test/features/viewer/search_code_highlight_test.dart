@@ -76,4 +76,84 @@ void main() {
     );
     expect(seen, 'b');
   });
+
+  testWidgets('CodeBlockWrapScope defaults to wrap when missing', (tester) async {
+    var wrap = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            wrap = CodeBlockWrapScope.wrapOf(context);
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+    expect(wrap, isTrue);
+  });
+
+  testWidgets('CodeBlockWrapScope notifies on wrap change', (tester) async {
+    var wrap = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CodeBlockWrapScope(
+          wrap: false,
+          child: Builder(
+            builder: (context) {
+              wrap = CodeBlockWrapScope.wrapOf(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(wrap, isFalse);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CodeBlockWrapScope(
+          wrap: true,
+          child: Builder(
+            builder: (context) {
+              wrap = CodeBlockWrapScope.wrapOf(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(wrap, isTrue);
+  });
+
+  testWidgets('fencedCodeBody wraps or scrolls based on flag', (tester) async {
+    const span = TextSpan(text: 'long line of code that may wrap');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: fencedCodeBody(
+            wrap: true,
+            padding: const EdgeInsets.all(8),
+            textSpan: span,
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(find.byType(SelectableText), findsOneWidget);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: fencedCodeBody(
+            wrap: false,
+            padding: const EdgeInsets.all(8),
+            textSpan: span,
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(SingleChildScrollView), findsOneWidget);
+    expect(find.byType(SelectableText), findsOneWidget);
+  });
 }
