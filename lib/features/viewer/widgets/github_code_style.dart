@@ -1,6 +1,7 @@
 // lib/features/viewer/widgets/github_code_style.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'search_code_highlight.dart';
 
 /// Primer/GitHub markdown code colors and builders for gpt_markdown.
 ///
@@ -89,6 +90,18 @@ class _GithubInlineCode extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = GithubCodeTokens.of(context);
     final baseSize = _resolveBaseFontSize(context, style);
+    final query = SearchHighlightScope.queryOf(context);
+    final baseStyle = style.copyWith(
+      fontFamily: 'monospace',
+      fontSize: baseSize * 0.85,
+      fontWeight: FontWeight.normal,
+      color: tokens.inlineFg,
+      // Avoid double-painting if parent style carried a background Paint.
+      background: null,
+      backgroundColor: null,
+    );
+    final highlightBg =
+        searchHighlightBackground(Theme.of(context).brightness);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
@@ -96,16 +109,12 @@ class _GithubInlineCode extends StatelessWidget {
         color: tokens.inlineBg,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        text,
-        style: style.copyWith(
-          fontFamily: 'monospace',
-          fontSize: baseSize * 0.85,
-          fontWeight: FontWeight.normal,
-          color: tokens.inlineFg,
-          // Avoid double-painting if parent style carried a background Paint.
-          background: null,
-          backgroundColor: null,
+      child: Text.rich(
+        buildQueryHighlightTextSpan(
+          text: text,
+          query: query,
+          style: baseStyle,
+          highlightBg: highlightBg,
         ),
       ),
     );
@@ -218,13 +227,105 @@ class _GithubCodeBlockState extends State<_GithubCodeBlock> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.all(bodyPad),
-            child: SelectableText(
-              widget.codes,
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: codeSize,
-                height: 1.45,
-                color: tokens.blockFg,
+            child: SelectableText.rich(
+              buildQueryHighlightTextSpan(
+                text: widget.codes,
+                query: SearchHighlightScope.queryOf(context),
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: codeSize,
+                  height: 1.45,
+                  color: tokens.blockFg,
+                ),
+                highlightBg: searchHighlightBackground(
+                  Theme.of(context).brightness,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Default-theme inline code with paint-time search highlights.
+Widget defaultInlineCode(BuildContext context, String text, TextStyle style) {
+  final query = SearchHighlightScope.queryOf(context);
+  final baseSize = _resolveBaseFontSize(context, style);
+  final theme = Theme.of(context);
+  final chipBg = theme.colorScheme.onSurfaceVariant.withAlpha(40);
+  final baseStyle = style.copyWith(
+    fontFamily: 'monospace',
+    fontSize: baseSize * 0.9,
+    background: null,
+    backgroundColor: null,
+  );
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+    decoration: BoxDecoration(
+      color: chipBg,
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Text.rich(
+      buildQueryHighlightTextSpan(
+        text: text,
+        query: query,
+        style: baseStyle,
+        highlightBg: searchHighlightBackground(theme.brightness),
+      ),
+    ),
+  );
+}
+
+/// Default-theme fenced code with paint-time search highlights.
+Widget defaultCodeBlock(
+  BuildContext context,
+  String name,
+  String code,
+  bool closed,
+) {
+  return _DefaultCodeBlock(name: name.trim(), codes: code);
+}
+
+class _DefaultCodeBlock extends StatelessWidget {
+  const _DefaultCodeBlock({required this.name, required this.codes});
+
+  final String name;
+  final String codes;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final baseSize = _resolveBaseFontSize(context, null);
+    final query = SearchHighlightScope.queryOf(context);
+    final style = TextStyle(
+      fontFamily: 'monospace',
+      fontSize: baseSize * 0.9,
+      height: 1.4,
+      color: theme.colorScheme.onSurface,
+    );
+    return Material(
+      color: theme.colorScheme.onInverseSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (name.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(name, style: theme.textTheme.labelMedium),
+            ),
+          if (name.isNotEmpty) const Divider(height: 1),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.all(16),
+            child: SelectableText.rich(
+              buildQueryHighlightTextSpan(
+                text: codes,
+                query: query,
+                style: style,
+                highlightBg: searchHighlightBackground(theme.brightness),
               ),
             ),
           ),

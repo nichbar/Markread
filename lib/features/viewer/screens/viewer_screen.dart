@@ -1166,6 +1166,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
         onLinkTap: _onLinkTap,
         fontScale: _fontScale,
         onFontScaleChanged: (s) => setState(() => _fontScale = s),
+        searchQuery: state.searchQuery,
       );
     }
 
@@ -1189,6 +1190,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       headingCount: state.headings.length,
       searchMatchCount:
           state.highlightContent.isNotEmpty ? state.searchMatchCount : 0,
+      searchQuery: state.searchQuery,
       markdownTheme: preferences.markdownTheme,
       renderMode: preferences.markdownRenderMode,
     );

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:markread/third_party/gpt_markdown/gpt_markdown.dart';
 import 'github_code_style.dart';
+import 'search_code_highlight.dart';
 import 'zoomable_area.dart';
 
 class SourceCodeView extends StatelessWidget {
@@ -14,6 +15,7 @@ class SourceCodeView extends StatelessWidget {
   final void Function(String url, String title)? onLinkTap;
   final double fontScale;
   final ValueChanged<double>? onFontScaleChanged;
+  final String searchQuery;
 
   const SourceCodeView({
     super.key,
@@ -26,6 +28,7 @@ class SourceCodeView extends StatelessWidget {
     this.onLinkTap,
     this.fontScale = 1.0,
     this.onFontScaleChanged,
+    this.searchQuery = '',
   });
 
   @override
@@ -59,6 +62,11 @@ class SourceCodeView extends StatelessWidget {
       ),
     );
 
+    final scoped = SearchHighlightScope(
+      query: searchQuery,
+      child: codeWidget,
+    );
+
     if (!isWordWrapEnabled) {
       return ZoomableArea(
         scale: fontScale,
@@ -67,7 +75,7 @@ class SourceCodeView extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: SizedBox(
             width: 800,
-            child: codeWidget,
+            child: scoped,
           ),
         ),
       );
@@ -76,7 +84,7 @@ class SourceCodeView extends StatelessWidget {
     return ZoomableArea(
       scale: fontScale,
       onScaleChanged: onFontScaleChanged,
-      child: codeWidget,
+      child: scoped,
     );
   }
 }

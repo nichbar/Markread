@@ -239,13 +239,20 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       final current = state.value;
       if (current == null) return;
-      final matches = _findMatches(current.fileContent, query);
-      String highlightContent = '';
-      if (current.viewMode == ViewMode.rendered &&
+      final renderedMarkdown = current.viewMode == ViewMode.rendered &&
           !current.isSourceCode &&
-          !current.isBinary) {
-        highlightContent =
-            _buildHighlightedContent(current.fileContent, query, matches);
+          !current.isBinary;
+      // Always match the full document (including code). Highlight anchors are
+      // only injected outside fenced/inline code so ``` / `code` stay intact.
+      final matches = findSearchMatches(current.fileContent, query);
+      String highlightContent = '';
+      if (renderedMarkdown) {
+        highlightContent = _buildHighlightedContent(
+          current.fileContent,
+          query,
+          matches,
+          skipHighlightRanges: codeExcludeRanges(current.fileContent),
+        );
       }
       state = AsyncData(current.copyWith(
         searchMatchCount: matches.length,
@@ -279,26 +286,18 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
     if (current.searchMatchOffsets.isNotEmpty) {
       return current.searchMatchOffsets;
     }
-    return _findMatches(current.fileContent, current.searchQuery);
+    return findSearchMatches(current.fileContent, current.searchQuery);
   }
 
-  List<int> _findMatches(String text, String query) {
-    if (query.isEmpty) return [];
-    final offsets = <int>[];
-    final lowerText = text.toLowerCase();
-    final lowerQuery = query.toLowerCase();
-    int start = 0;
-    while (true) {
-      final index = lowerText.indexOf(lowerQuery, start);
-      if (index == -1) break;
-      offsets.add(index);
-      start = index + lowerQuery.length;
-    }
-    return offsets;
-  }
-
+  /// Build display markdown with [wrapSearchMatch] anchors for each match,
+  /// except matches that start inside [skipHighlightRanges] (code fences /
+  /// inline code). Those still count for navigation via [searchMatchOffsets].
   String _buildHighlightedContent(
-      String text, String query, List<int> matches) {
+    String text,
+    String query,
+    List<int> matches, {
+    List<(int, int)>? skipHighlightRanges,
+  }) {
     if (matches.isEmpty) return text;
     final buffer = StringBuffer();
     int lastEnd = 0;
@@ -306,15 +305,138 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
       final offset = matches[i];
       // Write text between matches (preserving original casing)
       buffer.write(text.substring(lastEnd, offset));
-      // Wrap with private-use delimiters for SearchMatchMd anchors.
-      buffer.write(
-        wrapSearchMatch(i, text.substring(offset, offset + query.length)),
-      );
+      final matched = text.substring(offset, offset + query.length);
+      final skip = skipHighlightRanges != null &&
+          _offsetInRanges(offset, skipHighlightRanges);
+      if (skip) {
+        buffer.write(matched);
+      } else {
+        // Wrap with private-use delimiters for SearchMatchMd anchors.
+        // Index is the global match index so next/prev keys stay aligned.
+        buffer.write(wrapSearchMatch(i, matched));
+      }
       lastEnd = offset + query.length;
     }
     buffer.write(text.substring(lastEnd));
     return buffer.toString();
   }
+}
+
+/// Fenced + inline code ranges where search matches still count but are not
+/// visually highlighted (anchors would break fence/inline code parsing).
+List<(int, int)> codeExcludeRanges(String text) {
+  final fenced = fencedCodeRanges(text);
+  final inline = inlineCodeRanges(text, fencedRanges: fenced);
+  if (inline.isEmpty) return fenced;
+  if (fenced.isEmpty) return inline;
+  return _mergeRanges([...fenced, ...inline]);
+}
+
+/// Half-open `[start, end)` character ranges for fenced code blocks (` ``` `).
+///
+/// Matches [splitMarkdownBlocks] fence detection: a line whose left-trimmed
+/// content starts with ``` opens or closes a fence. Unclosed fences run to EOF.
+List<(int, int)> fencedCodeRanges(String text) {
+  if (text.isEmpty) return const [];
+
+  final ranges = <(int, int)>[];
+  var lineStart = 0;
+  var inFence = false;
+  var fenceStart = 0;
+  final n = text.length;
+
+  while (lineStart <= n) {
+    final nl = text.indexOf('\n', lineStart);
+    final lineEnd = nl == -1 ? n : nl;
+    final line = text.substring(lineStart, lineEnd);
+    final isFence = line.trimLeft().startsWith('```');
+
+    if (!inFence) {
+      if (isFence) {
+        inFence = true;
+        fenceStart = lineStart;
+      }
+    } else if (isFence) {
+      final end = nl == -1 ? n : nl + 1;
+      ranges.add((fenceStart, end));
+      inFence = false;
+    }
+
+    if (nl == -1) break;
+    lineStart = nl + 1;
+  }
+
+  if (inFence) {
+    ranges.add((fenceStart, n));
+  }
+  return ranges;
+}
+
+/// Half-open ranges for inline `` `code` `` spans (gpt_markdown [HighlightedText]).
+///
+/// Skips content already covered by [fencedRanges] so fence markers are not
+/// misread as inline ticks.
+List<(int, int)> inlineCodeRanges(
+  String text, {
+  List<(int, int)>? fencedRanges,
+}) {
+  if (text.isEmpty) return const [];
+  final fences = fencedRanges ?? fencedCodeRanges(text);
+  // Same idea as HighlightedText: single backticks, not ```, non-greedy body.
+  final exp = RegExp(r'`(?!`)(.+?)(?<!`)`(?!`)');
+  final ranges = <(int, int)>[];
+  for (final m in exp.allMatches(text)) {
+    if (_offsetInRanges(m.start, fences)) continue;
+    ranges.add((m.start, m.end));
+  }
+  return ranges;
+}
+
+List<(int, int)> _mergeRanges(List<(int, int)> ranges) {
+  if (ranges.isEmpty) return const [];
+  ranges.sort((a, b) => a.$1.compareTo(b.$1));
+  final out = <(int, int)>[ranges.first];
+  for (var i = 1; i < ranges.length; i++) {
+    final (s, e) = ranges[i];
+    final (ps, pe) = out.last;
+    if (s <= pe) {
+      out[out.length - 1] = (ps, e > pe ? e : pe);
+    } else {
+      out.add((s, e));
+    }
+  }
+  return out;
+}
+
+/// Case-insensitive substring search; optionally skips matches that start
+/// inside any half-open [excludeRanges] entry.
+List<int> findSearchMatches(
+  String text,
+  String query, {
+  List<(int, int)>? excludeRanges,
+}) {
+  if (query.isEmpty) return const [];
+  final offsets = <int>[];
+  final lowerText = text.toLowerCase();
+  final lowerQuery = query.toLowerCase();
+  var start = 0;
+  while (true) {
+    final index = lowerText.indexOf(lowerQuery, start);
+    if (index == -1) break;
+    if (excludeRanges == null || !_offsetInRanges(index, excludeRanges)) {
+      offsets.add(index);
+    }
+    start = index + lowerQuery.length;
+  }
+  return offsets;
+}
+
+bool _offsetInRanges(int offset, List<(int, int)> ranges) {
+  for (final (start, end) in ranges) {
+    if (offset < start) return false; // ranges are in document order
+    if (offset < end) return true;
+  }
+  return false;
 }
 
 final viewerProvider =

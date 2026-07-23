@@ -1,6 +1,7 @@
 // lib/features/viewer/widgets/markdown_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:markread/third_party/gpt_markdown/custom_widgets/markdown_config.dart';
 import 'package:markread/third_party/gpt_markdown/gpt_markdown.dart';
 import 'package:markread/third_party/gpt_markdown/theme.dart';
 import '../../../core/models/user_preferences.dart';
@@ -9,6 +10,7 @@ import '../services/markdown_block_splitter.dart';
 import 'github_code_style.dart';
 import 'github_markdown_theme.dart';
 import 'markdown_anchors.dart';
+import 'search_code_highlight.dart';
 import 'zoomable_area.dart';
 
 class MarkdownView extends StatefulWidget {
@@ -27,6 +29,8 @@ class MarkdownView extends StatefulWidget {
   final ValueChanged<double>? onFontScaleChanged;
   final int headingCount;
   final int searchMatchCount;
+  /// Active search query; used to paint highlights inside fenced/inline code.
+  final String searchQuery;
   /// Document chrome theme (headings/links/HR/code/tables). Default: GitHub.
   final MarkdownTheme markdownTheme;
   /// Which render path to use (auto / always virtualized / always monolith).
@@ -71,6 +75,7 @@ class MarkdownView extends StatefulWidget {
     this.onFontScaleChanged,
     this.headingCount = 0,
     this.searchMatchCount = 0,
+    this.searchQuery = '',
     this.markdownTheme = MarkdownTheme.github,
     this.renderMode = MarkdownRenderMode.auto,
   });
@@ -790,6 +795,14 @@ class MarkdownViewState extends State<MarkdownView> {
 
     final inlineComponents = buildAnchoredInlineComponents(_matchKeys);
 
+    // Always use our code builders so search can paint inside fenced/inline
+    // code. GitHub theme keeps Primer chrome; default theme uses lighter
+    // chrome that still supports paint-time query highlights.
+    final HighlightBuilder inlineCodeBuilder =
+        useGithub ? githubInlineCode : defaultInlineCode;
+    final CodeBlockBuilder fencedCodeBuilder =
+        useGithub ? githubCodeBlock : defaultCodeBlock;
+
     final Widget scrollChild;
     if (_useVirtualized) {
       // Large docs: virtualized ListView of per-block GptMarkdown.
@@ -827,9 +840,8 @@ class MarkdownViewState extends State<MarkdownView> {
                         style: stableStyle,
                         onLinkTap: widget.onLinkTap,
                         selectable: false,
-                        highlightBuilder:
-                            useGithub ? githubInlineCode : null,
-                        codeBuilder: useGithub ? githubCodeBlock : null,
+                        highlightBuilder: inlineCodeBuilder,
+                        codeBuilder: fencedCodeBuilder,
                         tableBuilder:
                             useGithub ? githubTableBuilder : null,
                         components: buildAnchoredComponentsForBlock(
@@ -866,8 +878,8 @@ class MarkdownViewState extends State<MarkdownView> {
                 style: stableStyle,
                 onLinkTap: widget.onLinkTap,
                 selectable: false,
-                highlightBuilder: useGithub ? githubInlineCode : null,
-                codeBuilder: useGithub ? githubCodeBlock : null,
+                highlightBuilder: inlineCodeBuilder,
+                codeBuilder: fencedCodeBuilder,
                 tableBuilder: useGithub ? githubTableBuilder : null,
                 components: buildAnchoredComponents(_headingKeys),
                 inlineComponents: inlineComponents,
@@ -907,10 +919,13 @@ class MarkdownViewState extends State<MarkdownView> {
       }
     }
 
-    return ZoomableArea(
-      scale: widget.fontScale,
-      onScaleChanged: widget.onFontScaleChanged,
-      child: result,
+    return SearchHighlightScope(
+      query: widget.searchQuery,
+      child: ZoomableArea(
+        scale: widget.fontScale,
+        onScaleChanged: widget.onFontScaleChanged,
+        child: result,
+      ),
     );
   }
 }
