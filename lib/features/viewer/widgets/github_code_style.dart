@@ -91,11 +91,15 @@ class _GithubInlineCode extends StatelessWidget {
     final tokens = GithubCodeTokens.of(context);
     final baseSize = _resolveBaseFontSize(context, style);
     final query = SearchHighlightScope.queryOf(context);
+    // Keep height tight so inherited body line-height (e.g. 1.5–1.6) does
+    // not push glyphs down inside the padded WidgetSpan chip.
     final baseStyle = style.copyWith(
       fontFamily: 'monospace',
       fontSize: baseSize * 0.85,
       fontWeight: FontWeight.normal,
       color: tokens.inlineFg,
+      height: 1.2,
+      leadingDistribution: TextLeadingDistribution.even,
       // Avoid double-painting if parent style carried a background Paint.
       background: null,
       backgroundColor: null,
@@ -104,7 +108,8 @@ class _GithubInlineCode extends StatelessWidget {
         searchHighlightBackground(Theme.of(context).brightness);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      // Slightly more top than bottom: monospace optical center sits a hair low.
+      padding: const EdgeInsets.fromLTRB(5, 1, 5, 2),
       decoration: BoxDecoration(
         color: tokens.inlineBg,
         borderRadius: BorderRadius.circular(6),
@@ -115,6 +120,10 @@ class _GithubInlineCode extends StatelessWidget {
           query: query,
           style: baseStyle,
           highlightBg: highlightBg,
+        ),
+        textHeightBehavior: const TextHeightBehavior(
+          applyHeightToFirstAscent: false,
+          applyHeightToLastDescent: false,
         ),
       ),
     );
@@ -258,11 +267,13 @@ Widget defaultInlineCode(BuildContext context, String text, TextStyle style) {
   final baseStyle = style.copyWith(
     fontFamily: 'monospace',
     fontSize: baseSize * 0.9,
+    height: 1.2,
+    leadingDistribution: TextLeadingDistribution.even,
     background: null,
     backgroundColor: null,
   );
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+    padding: const EdgeInsets.fromLTRB(4, 0, 4, 1),
     decoration: BoxDecoration(
       color: chipBg,
       borderRadius: BorderRadius.circular(4),
@@ -273,6 +284,10 @@ Widget defaultInlineCode(BuildContext context, String text, TextStyle style) {
         query: query,
         style: baseStyle,
         highlightBg: searchHighlightBackground(theme.brightness),
+      ),
+      textHeightBehavior: const TextHeightBehavior(
+        applyHeightToFirstAscent: false,
+        applyHeightToLastDescent: false,
       ),
     ),
   );
