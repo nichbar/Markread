@@ -434,6 +434,7 @@ class CompiledApp {
       _1320: x0 => x0.send(),
       _1321: () => new XMLHttpRequest(),
       _1322: (x0,x1) => x0.getItem(x1),
+      _1323: (x0,x1) => x0.removeItem(x1),
       _1324: (x0,x1,x2) => x0.setItem(x1,x2),
       _1325: (x0,x1) => x0.querySelector(x1),
       _1326: x0 => ({type: x0}),
