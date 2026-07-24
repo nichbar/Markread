@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/file_service.dart';
 import '../../../core/services/intent_file_service.dart';
@@ -72,7 +73,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
-        title: const Text('MarkRead'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -87,14 +87,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.auto_stories,
-                size: 80,
-                color: theme.colorScheme.primary,
+              SvgPicture.asset(
+                'assets/logo/markread_logo.svg',
+                width: 120,
+                height: 84,
               ),
               const SizedBox(height: 16),
               Text(
-                'MarkRead',
+                'Markread',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

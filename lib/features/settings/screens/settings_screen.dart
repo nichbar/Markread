@@ -171,7 +171,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // -- About --
           _SectionHeader(title: 'About'),
           const ListTile(
-            title: Text('MarkRead'),
+            title: Text('Markread'),
             subtitle: Text('A clean markdown reader'),
           ),
           const ListTile(

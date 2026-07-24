@@ -46,8 +46,8 @@ final _routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class MarkReadApp extends ConsumerWidget {
-  const MarkReadApp({super.key});
+class MarkreadApp extends ConsumerWidget {
+  const MarkreadApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,7 +55,7 @@ class MarkReadApp extends ConsumerWidget {
     final router = ref.watch(_routerProvider);
 
     return MaterialApp.router(
-      title: 'MarkRead',
+      title: 'Markread',
       debugShowCheckedModeBanner: false,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),

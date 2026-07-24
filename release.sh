@@ -3,7 +3,7 @@ set -e
 
 cd "$(dirname "$0")"
 
-echo "=== MarkRead Release Builder ==="
+echo "=== Markread Release Builder ==="
 echo ""
 
 # Check for keystore

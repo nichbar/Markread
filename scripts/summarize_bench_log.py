@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Summarize MarkRead [bench] logcat lines from platform_benchmark_hud.dart.
+"""Summarize Markread [bench] logcat lines from platform_benchmark_hud.dart.
 
 Usage:
   python3 scripts/summarize_bench_log.py /tmp/markread_bench.log

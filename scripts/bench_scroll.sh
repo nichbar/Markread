@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Device-agnostic MarkRead scroll bench.
+# Device-agnostic Markread scroll bench.
 #
 # Finds an adb device, builds/installs a profile APK with MARKREAD_AUTO_BENCH,
 # launches the app, then captures flutter logs while you open a large markdown

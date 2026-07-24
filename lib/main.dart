@@ -8,5 +8,5 @@ final intentFileService = IntentFileService();
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: MarkReadApp()));
+  runApp(const ProviderScope(child: MarkreadApp()));
 }

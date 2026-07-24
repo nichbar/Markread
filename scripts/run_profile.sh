@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install/run MarkRead in profile mode on a device (Skia forced via manifest
+# Install/run Markread in profile mode on a device (Skia forced via manifest
 # and CLI flag). Leaves the app running for manual or scripted bench.
 #
 # Usage:
