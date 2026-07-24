@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 180">
+  <!-- Markread logo: geometric M + markdown down-arrow (colors sampled from app icon) -->
+  <path fill="#303030" d="M0 180V0h46l44 48L134 0h46v180h-46V78l-44 41L46 78v102H0z"/>
+  <path fill="#5C6068" d="M254 0h31v105h43l-58.5 73L211 105h43V0z"/>
+</svg>
