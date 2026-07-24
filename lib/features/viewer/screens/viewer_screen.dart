@@ -36,7 +36,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
   static const bool _autoBench =
       bool.fromEnvironment('MARKREAD_AUTO_BENCH', defaultValue: false);
 
+  /// Session invert of reader surface vs app theme (not absolute dark/light).
   bool _isReadingSurfaceDark = false;
+  bool? _lastStatusBarSurfaceDark;
   bool _isWordWrapEnabled = true;
   bool _isCodeBlockWrapEnabled = true;
   double _fontScale = 1.0;
@@ -69,13 +71,25 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     _scrollController = ScrollController();
     _scrollController.addListener(_onScrollTick);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateStatusBarStyle();
       // Handle already-loaded state (listen does not fire for current value).
       final state = ref.read(viewerProvider).value;
       if (state != null) {
         unawaited(_tryResumeReadingProgress(state));
       }
     });
+  }
+
+  /// Effective reader page darkness from app theme + session invert flag.
+  bool _resolveIsSurfaceDark(
+    UserPreferences preferences,
+    Brightness themeBrightness,
+  ) {
+    final isBaseDark = switch (preferences.appThemeMode) {
+      AppThemeMode.system => themeBrightness == Brightness.dark,
+      AppThemeMode.dark => true,
+      AppThemeMode.light => false,
+    };
+    return _isReadingSurfaceDark ? !isBaseDark : isBaseDark;
   }
 
   @override
@@ -612,8 +626,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     _scrollToOffset(state.headings[index].offset, state.fileContent.length);
   }
 
-  void _updateStatusBarStyle() {
-    final brightness = _isReadingSurfaceDark ? Brightness.dark : Brightness.light;
+  void _updateStatusBarStyle({required bool isSurfaceDark}) {
+    if (_lastStatusBarSurfaceDark == isSurfaceDark) return;
+    _lastStatusBarSurfaceDark = isSurfaceDark;
+    final brightness = isSurfaceDark ? Brightness.dark : Brightness.light;
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarIconBrightness: brightness == Brightness.dark
@@ -654,13 +670,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       }
     });
 
-    final isSystemDark = Theme.of(context).brightness == Brightness.dark;
-    final isBaseDark = switch (preferences.appThemeMode) {
-      AppThemeMode.system => isSystemDark,
-      AppThemeMode.dark => true,
-      AppThemeMode.light => false,
-    };
-    final isSurfaceDark = _isReadingSurfaceDark ? !isBaseDark : isBaseDark;
+    final isSurfaceDark = _resolveIsSurfaceDark(
+      preferences,
+      Theme.of(context).brightness,
+    );
+    // Keep icons in sync with the real surface (flag alone is invert-only).
+    _updateStatusBarStyle(isSurfaceDark: isSurfaceDark);
 
     final readerColors = resolveReaderColors(isSurfaceDark: isSurfaceDark);
     final chromeColors = readerColors;
@@ -679,7 +694,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
 
     return Scaffold(
       backgroundColor: readerColors.surface,
-      appBar: _buildAppBar(viewerStateAsync, chromeColors),
+      appBar: _buildAppBar(
+        viewerStateAsync,
+        chromeColors,
+        isSurfaceDark: isSurfaceDark,
+      ),
       body: BenchmarkHudHost(
         label: modeLabel,
         visible: _showBenchHud,
@@ -710,8 +729,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
 
   PreferredSizeWidget _buildAppBar(
     AsyncValue<ViewerState> viewerStateAsync,
-    ReaderColors chromeColors,
-  ) {
+    ReaderColors chromeColors, {
+    required bool isSurfaceDark,
+  }) {
     final state = viewerStateAsync.value;
     final isLoading = viewerStateAsync.isLoading ||
         state == null ||
@@ -886,7 +906,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
                   final saved = _scrollController.offset;
                   setState(
                       () => _isReadingSurfaceDark = !_isReadingSurfaceDark);
-                  _updateStatusBarStyle();
+                  // Status bar follows isSurfaceDark on the next build.
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (_scrollController.hasClients) {
                       _scrollController.jumpTo(saved.clamp(
@@ -975,22 +995,18 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
               child: Row(
                 children: [
                   Icon(
-                    _isReadingSurfaceDark
-                        ? Icons.dark_mode
-                        : Icons.light_mode,
+                    isSurfaceDark ? Icons.dark_mode : Icons.light_mode,
                     color: chromeColors.content,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _isReadingSurfaceDark
-                          ? 'Reader surface: Dark'
-                          : 'Reader surface: Light',
+                      'Reader surface',
                       style: TextStyle(color: chromeColors.content),
                     ),
                   ),
                   Text(
-                    _isReadingSurfaceDark ? 'Dark' : 'Light',
+                    isSurfaceDark ? 'Dark' : 'Light',
                     style:
                         TextStyle(fontSize: 11, color: chromeColors.muted),
                   ),
