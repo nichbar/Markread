@@ -115,4 +115,6 @@ Markdown theme **Monospace** is adapted from [typora-monospace-theme](https://gi
 
 ## License
 
-MIT
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only).
+
+Third-party dependencies and adapted themes retain their original licenses (see [Credits](#credits)).
