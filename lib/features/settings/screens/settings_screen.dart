@@ -1,10 +1,13 @@
 // lib/features/settings/screens/settings_screen.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/app_version.dart';
 import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/preferences_provider.dart';
+import '../../../core/services/update_check_service.dart';
 import '../../../core/widgets/app_layout_body.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -15,6 +18,11 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _checkingForUpdate = false;
+
+  bool get _canCheckForUpdates =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
   @override
   Widget build(BuildContext context) {
     final prefs = ref.watch(preferencesProvider);
@@ -173,11 +181,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _SectionHeader(title: 'About'),
           const ListTile(
             title: Text('Markread'),
-            subtitle: Text('A clean markdown reader'),
+            subtitle: Text('A minimal, read-only Markdown reader.'),
           ),
-          const ListTile(
-            title: Text('Version'),
-            subtitle: Text('1.0.8'),
+          ListTile(
+            title: const Text('Version'),
+            subtitle: const Text(kAppVersion),
+            trailing: _canCheckForUpdates
+                ? (_checkingForUpdate
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.system_update_alt))
+                : null,
+            onTap: _canCheckForUpdates ? _checkForUpdate : null,
           ),
           ListTile(
             title: const Text('Source code'),
@@ -192,8 +210,87 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  Future<void> _checkForUpdate() async {
+    if (_checkingForUpdate) return;
+
+    setState(() => _checkingForUpdate = true);
+    final result = await checkForUpdate();
+    if (!mounted) return;
+    setState(() => _checkingForUpdate = false);
+
+    switch (result.status) {
+      case UpdateCheckStatus.upToDate:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("You're up to date (v$kAppVersion)")),
+        );
+      case UpdateCheckStatus.updateAvailable:
+        final latest = result.latest;
+        if (latest == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not check for updates')),
+          );
+          return;
+        }
+        await _showUpdateAvailableDialog(latest);
+      case UpdateCheckStatus.failed:
+      case UpdateCheckStatus.unsupported:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not check for updates')),
+        );
+    }
+  }
+
+  Future<void> _showUpdateAvailableDialog(LatestRelease latest) async {
+    final shouldDownload = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Update available'),
+          content: Text(
+            'A newer version is available.\n\n'
+            'Current: v$kAppVersion\n'
+            'Latest: v${latest.version}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Later'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Download'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDownload != true || !mounted) return;
+    await _openReleasePage(latest.htmlUrl);
+  }
+
+  Future<void> _openReleasePage(String htmlUrl) async {
+    final uri = Uri.tryParse(htmlUrl);
+    if (uri == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open release page')),
+      );
+      return;
+    }
+
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open release page')),
+      );
+    }
+  }
+
   Future<void> _openGitHubRepo(BuildContext context) async {
-    final uri = Uri.parse('https://github.com/nichbar/Markread');
+    final uri = Uri.parse(kGitHubRepoUrl);
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
