@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/preferences_provider.dart';
 import '../../../core/widgets/app_layout_body.dart';
@@ -178,11 +179,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: Text('Version'),
             subtitle: Text('1.0.8'),
           ),
+          ListTile(
+            title: const Text('Source code'),
+            subtitle: const Text('github.com/nichbar/Markread'),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => _openGitHubRepo(context),
+          ),
           const SizedBox(height: 32),
         ],
       ),
       ),
     );
+  }
+
+  Future<void> _openGitHubRepo(BuildContext context) async {
+    final uri = Uri.parse('https://github.com/nichbar/Markread');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open GitHub repository')),
+      );
+    }
   }
 
   String _displayMarkdownTheme(MarkdownTheme t) => switch (t) {
