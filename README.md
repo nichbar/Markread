@@ -73,6 +73,9 @@ flutter build apk --debug
 # Android release APK (arm64 only, minified — ~20 MB)
 flutter build apk --release --target-platform android-arm64
 
+# Android universal APK (armeabi-v7a + arm64-v8a + x86_64)
+flutter build apk --release --target-platform android-arm,android-arm64,android-x64
+
 # Full release (APK + AAB, with analysis)
 ./release.sh
 

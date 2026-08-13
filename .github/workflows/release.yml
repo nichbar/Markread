@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -52,8 +54,16 @@ jobs:
       - name: Build Android APK (release, arm64)
         run: flutter build apk --release --target-platform android-arm64
 
-      - name: Rename APK
+      - name: Rename arm64 APK
         run: cp build/app/outputs/flutter-apk/app-release.apk Markread.${{ github.ref_name }}.apk
+
+      # Fat APK: armeabi-v7a + arm64-v8a + x86_64.
+      # Flutter release builds do not support 32-bit x86 (android-x86).
+      - name: Build Android APK (release, universal)
+        run: flutter build apk --release --target-platform android-arm,android-arm64,android-x64
+
+      - name: Rename universal APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk Markread.${{ github.ref_name }}-universal.apk
 
       - name: Build web
         run: flutter build web
@@ -61,11 +71,41 @@ jobs:
       - name: Package web artifact
         run: cd build && zip -r ../web-release.zip web/
 
+      - name: Generate commit changelog
+        run: |
+          TAG="${{ github.ref_name }}"
+          PREV="$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)"
+          {
+            echo "## What's Changed"
+            echo
+            if [ -n "$PREV" ]; then
+              echo "Commits since \`${PREV}\`:"
+              echo
+              git log --pretty=format:'- %s (%h)' "${PREV}..${TAG}"
+              echo
+              echo
+              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV}...${TAG}"
+            else
+              echo "Initial release."
+              echo
+              git log --pretty=format:'- %s (%h)' "${TAG}"
+              echo
+            fi
+            echo
+            echo "## Downloads"
+            echo
+            echo "- \`Markread.${TAG}.apk\` — arm64-v8a (smaller, most phones)"
+            echo "- \`Markread.${TAG}-universal.apk\` — armeabi-v7a + arm64-v8a + x86_64"
+            echo "- \`web-release.zip\` — web build"
+          } > release-notes.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
-          generate_release_notes: true
+          body_path: release-notes.md
+          generate_release_notes: false
           files: |
             Markread.${{ github.ref_name }}.apk
+            Markread.${{ github.ref_name }}-universal.apk
             web-release.zip
