@@ -99921,7 +99921,7 @@ if(m==null)m=q
 else{s=p.ax
 r=s.rx
 m=m.bX(r==null?s.k3:r)}m=A.bx("A clean markdown reader",q,q,q,m,q,q)
-return A.apv(n,q,new A.w2(A.ei(new A.bh(B.q4,A.fJ(A.b([new A.X5(120,84,new A.I5("assets/logo/markread_logo.svg",q,q,q,q),q,q),B.jg,l,B.CF,m,B.CE,new A.RQ(!0,new A.aAu(this),q,q,q,q,B.y,q,!1,q,!0,q,new A.a_N(B.a3X,B.qN,q,q,q),q)],o),B.K,B.fM,B.a_),q),q,q),q))},
+return A.apv(n,q,new A.w2(A.ei(new A.bh(B.q4,A.fJ(A.b([new A.X5(120,84,new A.I5("assets/logo/markread_logo.svg",q,q,q,q),q,q),B.jg,l,B.CF,m,B.CE,new A.RQ(!0,new A.aAu(this),q,q,q,q,B.y,q,!1,q,!0,q,new A.a_N(B.a3W,B.qN,q,q,q),q)],o),B.K,B.fM,B.a_),q),q,q),q))},
 BH(){var s=0,r=A.K(t.H),q,p=this,o,n,m,l,k
 var $async$BH=A.L(function(a,b){if(a===1)return A.H(b,r)
 for(;;)switch(s){case 0:l=new A.DQ()
@@ -99968,7 +99968,7 @@ m=A.cU(A.b([B.a48,A.h9(A.aUn(8,B.d.a6(n,1),2,1.2,new A.aG5(k),n),1),B.a4a],o),B.
 n=A.ei(A.bx(B.d.a6(n,1)+"x",j,j,j,A.O(a).ok.z,j,j),j,j)
 l=t.BN
 l=A.aU6(new A.aG6(k),B.Rz,A.cb([i.f],l),l)
-return A.apv(h,j,new A.w2(A.aSM(A.b([new A.o8("Appearance",j),new A.bh(B.e7,g,j),B.pT,new A.o8("Reader",j),s,r,new A.o8("Font Size",j),new A.bh(B.fn,q,j),p,new A.o8("Line Height",j),new A.bh(B.fn,m,j),n,new A.o8("Text Alignment",j),new A.bh(B.e7,l,j),B.pT,new A.o8("About",j),B.Pu,A.aNh(j,B.a3W,B.a42,j),A.aNh(new A.aG7(k,a),B.a4d,B.a4c,B.Oy),B.CE],o),j,j,!1),j))},
+return A.apv(h,j,new A.w2(A.aSM(A.b([new A.o8("Appearance",j),new A.bh(B.e7,g,j),B.pT,new A.o8("Reader",j),s,r,new A.o8("Font Size",j),new A.bh(B.fn,q,j),p,new A.o8("Line Height",j),new A.bh(B.fn,m,j),n,new A.o8("Text Alignment",j),new A.bh(B.e7,l,j),B.pT,new A.o8("About",j),B.Pu,A.aNh(j,B.a3Y,B.a42,j),A.aNh(new A.aG7(k,a),B.a4d,B.a4c,B.Oy),B.CE],o),j,j,!1),j))},
 BI(a){return this.aqu(a)},
 aqu(a){var s=0,r=A.K(t.H),q,p=2,o=[],n,m,l
 var $async$BI=A.L(function(b,c){if(b===1){o.push(c)
@@ -114541,8 +114541,8 @@ B.Zs=new A.lX(3,"hide")
 B.a8p=new A.lX(4,"remove")
 B.Zt=new A.lX(5,"timeout")
 B.Zu=new A.z6(null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a3Y=new A.d8("Could not open GitHub repository",null,null,null,null,null,null,null,null,null,null)
-B.Zv=new A.uD(B.a3Y,null,null,null,null,null,null,null,null,null,null,null,null,B.pW,!1,null,null,null,B.S,null)
+B.a3X=new A.d8("Could not open GitHub repository",null,null,null,null,null,null,null,null,null,null)
+B.Zv=new A.uD(B.a3X,null,null,null,null,null,null,null,null,null,null,null,null,B.pW,!1,null,null,null,B.S,null)
 B.CK=new A.HQ(0,"permissive")
 B.Zw=new A.HQ(1,"normal")
 B.Zx=new A.HQ(2,"forced")
@@ -114948,8 +114948,8 @@ B.a05=new A.w(!0,B.l,null,".AppleSystemUIFont",null,null,null,null,null,null,nul
 B.a3Q=new A.eu(B.a1M,B.a0L,B.a1N,B.a2e,B.a0u,B.a0B,B.a13,B.a29,B.a1f,B.a2z,B.a_Z,B.a0g,B.a2w,B.a2R,B.a05)
 B.a3S=new A.d8("Page Not Found",null,B.hd,null,null,null,null,null,null,null,null)
 B.a3U=new A.d8("Home",null,null,null,null,null,null,null,null,null,null)
-B.a3W=new A.d8("1.0.9",null,null,null,null,null,null,null,null,null,null)
-B.a3X=new A.d8("Open File",null,null,null,null,null,null,null,null,null,null)
+B.a3W=new A.d8("Open File",null,null,null,null,null,null,null,null,null,null)
+B.a3Y=new A.d8("1.0.10",null,null,null,null,null,null,null,null,null,null)
 B.a3s=new A.w(!0,null,null,null,null,null,12,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.a3Z=new A.d8("Aa",null,B.a3s,null,null,null,null,null,null,null,null)
 B.a40=new A.d8("Open Different File",null,null,null,null,null,null,null,null,null,null)
