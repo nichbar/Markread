@@ -1,5 +1,5 @@
 /// Keep in sync with pubspec `version:` name (before `+build`).
-const String kAppVersion = '1.0.11';
+const String kAppVersion = '1.0.12';
 
 const String kGitHubRepoUrl = 'https://github.com/nichbar/Markread';
 const String kGitHubLatestReleaseApiUrl =
