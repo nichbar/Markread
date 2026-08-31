@@ -185,6 +185,7 @@ List<MarkdownComponent> buildAnchoredInlineComponents(
   return [
     SearchMatchMd(matchKeys),
     ATagMd(),
+    AutolinkMd(),
     ImageMd(),
     TableMd(),
     StrikeMd(),

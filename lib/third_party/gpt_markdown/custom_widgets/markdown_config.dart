@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../markdown_component.dart';
+import '../styles/gpt_markdown_style_sheet.dart';
+import 'bidi_rich_text.dart';
+import 'selectable_adapter.dart';
 
 /// A builder function for the ordered list.
 typedef OrderedListBuilder =
@@ -10,6 +13,7 @@ typedef OrderedListBuilder =
       Widget child,
       GptMarkdownConfig config,
     );
+typedef OrderedListWrapper = OrderedListBuilder;
 
 /// A builder function for the unordered list.
 typedef UnOrderedListBuilder =
@@ -18,10 +22,12 @@ typedef UnOrderedListBuilder =
       Widget child,
       GptMarkdownConfig config,
     );
+typedef UnOrderedListWrapper = UnOrderedListBuilder;
 
 /// A builder function for the source tag.
 typedef SourceTagBuilder =
     Widget Function(BuildContext context, String content, TextStyle textStyle);
+typedef SourceTagWrapper = SourceTagBuilder;
 
 /// A builder function for the code block.
 typedef CodeBlockBuilder =
@@ -31,6 +37,7 @@ typedef CodeBlockBuilder =
       String code,
       bool closed,
     );
+typedef CodeWrapper = CodeBlockBuilder;
 
 /// A builder function for the link.
 typedef LinkBuilder =
@@ -40,6 +47,7 @@ typedef LinkBuilder =
       String url,
       TextStyle style,
     );
+typedef LinkWrapper = LinkBuilder;
 
 /// A builder function for the table.
 typedef TableBuilder =
@@ -49,15 +57,14 @@ typedef TableBuilder =
       TextStyle textStyle,
       GptMarkdownConfig config,
     );
+typedef TableWrapper = TableBuilder;
 
 /// A builder function for the highlight.
 typedef HighlightBuilder =
     Widget Function(BuildContext context, String text, TextStyle style);
+typedef HighlightWrapper = HighlightBuilder;
 
 /// A builder function for the image.
-///
-/// [width] and [height] come from the image alt text when parsed as `WxH`
-/// (for example `![100x200](url)`); otherwise they are null.
 typedef ImageBuilder =
     Widget Function(
       BuildContext context,
@@ -65,18 +72,26 @@ typedef ImageBuilder =
       double? width,
       double? height,
     );
+typedef ImageWrapper = ImageBuilder;
+
+/// A builder function for latex math expressions.
+typedef LatexBuilder =
+    Widget Function(
+      BuildContext context,
+      String latex,
+      TextStyle textStyle,
+      bool inline,
+    );
+typedef LatexWrapper = LatexBuilder;
 
 /// A configuration class for the GPT Markdown component.
-///
-/// The [GptMarkdownConfig] class is used to configure the GPT Markdown component.
-/// It takes a [style] parameter to set the style of the text,
-/// a [textDirection] parameter to set the direction of the text,
-/// and an optional [onLinkTap] parameter to handle link clicks.
 class GptMarkdownConfig {
   const GptMarkdownConfig({
     this.style,
+    this.styleSheet,
     this.textDirection = TextDirection.ltr,
     this.onLinkTap,
+    this.onLinkTab,
     this.textAlign,
     this.textScaler,
     this.followLinkColor = false,
@@ -87,6 +102,7 @@ class GptMarkdownConfig {
     this.unOrderedListBuilder,
     this.linkBuilder,
     this.imageBuilder,
+    this.latexBuilder,
     this.maxLines,
     this.overflow,
     this.components,
@@ -101,6 +117,9 @@ class GptMarkdownConfig {
   /// The style of the text.
   final TextStyle? style;
 
+  /// The style sheet.
+  final GptMarkdownStyleSheet? styleSheet;
+
   /// The alignment of the text.
   final TextAlign? textAlign;
 
@@ -109,6 +128,9 @@ class GptMarkdownConfig {
 
   /// The callback function to handle link clicks.
   final void Function(String url, String title)? onLinkTap;
+
+  /// Alias for [onLinkTap].
+  final void Function(String url, String title)? onLinkTab;
 
   /// The source tag builder.
   final SourceTagBuilder? sourceTagBuilder;
@@ -140,6 +162,9 @@ class GptMarkdownConfig {
   /// The image builder.
   final ImageBuilder? imageBuilder;
 
+  /// The latex builder.
+  final LatexBuilder? latexBuilder;
+
   /// The list of components.
   final List<MarkdownComponent>? components;
 
@@ -155,29 +180,34 @@ class GptMarkdownConfig {
   /// A copy of the configuration with the specified parameters.
   GptMarkdownConfig copyWith({
     TextStyle? style,
+    GptMarkdownStyleSheet? styleSheet,
     TextDirection? textDirection,
-    final void Function(String url, String title)? onLinkTap,
-    final TextAlign? textAlign,
-    final TextScaler? textScaler,
-    final SourceTagBuilder? sourceTagBuilder,
-    final bool? followLinkColor,
-    final CodeBlockBuilder? codeBuilder,
-    final int? maxLines,
-    final TextOverflow? overflow,
-    final HighlightBuilder? highlightBuilder,
-    final LinkBuilder? linkBuilder,
-    final ImageBuilder? imageBuilder,
-    final OrderedListBuilder? orderedListBuilder,
-    final UnOrderedListBuilder? unOrderedListBuilder,
-    final List<MarkdownComponent>? components,
-    final List<MarkdownComponent>? inlineComponents,
-    final TableBuilder? tableBuilder,
-    final bool? selectable,
+    void Function(String url, String title)? onLinkTap,
+    void Function(String url, String title)? onLinkTab,
+    TextAlign? textAlign,
+    TextScaler? textScaler,
+    SourceTagBuilder? sourceTagBuilder,
+    bool? followLinkColor,
+    CodeBlockBuilder? codeBuilder,
+    int? maxLines,
+    TextOverflow? overflow,
+    HighlightBuilder? highlightBuilder,
+    LinkBuilder? linkBuilder,
+    ImageBuilder? imageBuilder,
+    LatexBuilder? latexBuilder,
+    OrderedListBuilder? orderedListBuilder,
+    UnOrderedListBuilder? unOrderedListBuilder,
+    List<MarkdownComponent>? components,
+    List<MarkdownComponent>? inlineComponents,
+    TableBuilder? tableBuilder,
+    bool? selectable,
   }) {
     return GptMarkdownConfig(
       style: style ?? this.style,
+      styleSheet: styleSheet ?? this.styleSheet,
       textDirection: textDirection ?? this.textDirection,
       onLinkTap: onLinkTap ?? this.onLinkTap,
+      onLinkTab: onLinkTab ?? this.onLinkTab,
       textAlign: textAlign ?? this.textAlign,
       textScaler: textScaler ?? this.textScaler,
       followLinkColor: followLinkColor ?? this.followLinkColor,
@@ -188,6 +218,7 @@ class GptMarkdownConfig {
       highlightBuilder: highlightBuilder ?? this.highlightBuilder,
       linkBuilder: linkBuilder ?? this.linkBuilder,
       imageBuilder: imageBuilder ?? this.imageBuilder,
+      latexBuilder: latexBuilder ?? this.latexBuilder,
       orderedListBuilder: orderedListBuilder ?? this.orderedListBuilder,
       unOrderedListBuilder: unOrderedListBuilder ?? this.unOrderedListBuilder,
       components: components ?? this.components,
@@ -199,31 +230,31 @@ class GptMarkdownConfig {
 
   /// A method to get a rich text widget from an inline span.
   Widget getRich(InlineSpan span) {
-    if (selectable) {
-      return SelectableText.rich(
-        span as TextSpan,
-        textDirection: textDirection,
-        textScaler: textScaler,
-        textAlign: textAlign,
-        maxLines: maxLines,
-      );
-    }
-    return Text.rich(
-      span,
+    final child = BidiRichText(
+      textSpan: span,
       textDirection: textDirection,
       textScaler: textScaler,
-      textAlign: textAlign,
+      textAlign: textAlign ?? TextAlign.start,
       maxLines: maxLines,
-      overflow: overflow,
+      overflow: overflow ?? TextOverflow.clip,
     );
+
+    if (selectable) {
+      return SelectableAdapter(
+        selectable: true,
+        child: child,
+      );
+    }
+    return child;
   }
 
   /// A method to check if the configuration is the same.
   ///
-  /// Includes custom builders so remounts/rebuilds that only swap chrome
+  /// Includes custom builders and styleSheet so remounts/rebuilds that only swap chrome
   /// (code / table / highlight / link) still regenerate spans.
   bool isSame(GptMarkdownConfig other) {
     return style == other.style &&
+        styleSheet == other.styleSheet &&
         textAlign == other.textAlign &&
         textScaler == other.textScaler &&
         maxLines == other.maxLines &&
@@ -236,6 +267,7 @@ class GptMarkdownConfig {
         tableBuilder == other.tableBuilder &&
         linkBuilder == other.linkBuilder &&
         imageBuilder == other.imageBuilder &&
+        latexBuilder == other.latexBuilder &&
         sourceTagBuilder == other.sourceTagBuilder &&
         orderedListBuilder == other.orderedListBuilder &&
         unOrderedListBuilder == other.unOrderedListBuilder;

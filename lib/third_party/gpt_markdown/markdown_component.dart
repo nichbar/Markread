@@ -5,16 +5,20 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'custom_widgets/markdown_config.dart';
+import 'autolink.dart';
+
+export 'autolink.dart';
+import 'custom_widgets/code_field.dart';
 import 'custom_widgets/custom_divider.dart';
 import 'custom_widgets/custom_error_image.dart';
 import 'custom_widgets/custom_rb_cb.dart';
-import 'custom_widgets/unordered_ordered_list.dart';
-import 'custom_widgets/code_field.dart';
 import 'custom_widgets/indent_widget.dart';
+import 'custom_widgets/inline_code.dart';
 import 'custom_widgets/link_button.dart';
-import 'theme.dart';
+import 'custom_widgets/markdown_config.dart';
+import 'custom_widgets/unordered_ordered_list.dart';
 import 'md_widget.dart';
+import 'theme.dart';
 
 /// Markdown components
 abstract class MarkdownComponent {
@@ -33,8 +37,9 @@ abstract class MarkdownComponent {
     IndentMd(),
   ];
 
-  static final List<MarkdownComponent> inlineComponents = [
+  static List<MarkdownComponent> get inlineComponents => [
     ATagMd(),
+    AutolinkMd(),
     ImageMd(),
     TableMd(),
     StrikeMd(),
@@ -217,14 +222,27 @@ class HTag extends BlockMd {
   ) {
     var theme = GptMarkdownTheme.of(context);
     var match = this.exp.firstMatch(text.trim());
-    var headingStyle = [
+    final level = (match?[1]?.length ?? 1) - 1;
+    final clampedLevel = level.clamp(0, 5);
+
+    final sheetHeadings = [
+      config.styleSheet?.headingStyle?.h1 ?? config.styleSheet?.h1,
+      config.styleSheet?.headingStyle?.h2 ?? config.styleSheet?.h2,
+      config.styleSheet?.headingStyle?.h3 ?? config.styleSheet?.h3,
+      config.styleSheet?.headingStyle?.h4 ?? config.styleSheet?.h4,
+      config.styleSheet?.headingStyle?.h5 ?? config.styleSheet?.h5,
+      config.styleSheet?.headingStyle?.h6 ?? config.styleSheet?.h6,
+    ];
+
+    var headingStyle = sheetHeadings[clampedLevel] ?? [
       theme.h1,
       theme.h2,
       theme.h3,
       theme.h4,
       theme.h5,
       theme.h6,
-    ][match![1]!.length - 1];
+    ][clampedLevel];
+
     // Inherit color from the parent config so heading text follows
     // reader theme changes instead of staying on the default color.
     final mergedStyle = headingStyle?.copyWith(
@@ -236,11 +254,11 @@ class HTag extends BlockMd {
         children: [
           ...(MarkdownComponent.generate(
             context,
-            "${match.namedGroup('data')}",
+            "${match?.namedGroup('data')}",
             conf,
             false,
           )),
-          if (match.namedGroup('hash')!.length == 1 &&
+          if (match?.namedGroup('hash')?.length == 1 &&
               theme.autoAddDividerLineAfterH1) ...[
             const TextSpan(
               text: "\n ",
@@ -248,9 +266,9 @@ class HTag extends BlockMd {
             ),
             WidgetSpan(
               child: CustomDivider(
-                height: theme.hrLineThickness,
-                color: theme.hrLineColor,
-                padding: theme.hrLinePadding,
+                height: config.styleSheet?.hrStyle?.thickness ?? theme.hrLineThickness,
+                color: config.styleSheet?.hrStyle?.color ?? theme.hrLineColor,
+                padding: (config.styleSheet?.hrStyle?.margin as EdgeInsets?) ?? theme.hrLinePadding,
               ),
             ),
           ],
@@ -291,10 +309,11 @@ class HrLine extends BlockMd {
     final GptMarkdownConfig config,
   ) {
     final gptTheme = GptMarkdownTheme.of(context);
+    final hrStyle = config.styleSheet?.hrStyle;
     return CustomDivider(
-      height: gptTheme.hrLineThickness,
-      color: gptTheme.hrLineColor,
-      padding: gptTheme.hrLinePadding,
+      height: hrStyle?.thickness ?? gptTheme.hrLineThickness,
+      color: hrStyle?.color ?? gptTheme.hrLineColor,
+      padding: (hrStyle?.margin as EdgeInsets?) ?? gptTheme.hrLinePadding,
     );
   }
 }
@@ -345,12 +364,11 @@ class BlockQuote extends InlineMd {
   bool get inline => false;
   @override
   RegExp get exp =>
-  // RegExp(r"(?<=\n\n)(\ +)(.+?)(?=\n\n)", dotAll: true, multiLine: true);
-  RegExp(
-    r"(?:(?:^)\ *>[^\n]+)(?:(?:\n)\ *>[^\n]+)*",
-    dotAll: true,
-    multiLine: true,
-  );
+      RegExp(
+        r"(?:(?:^)\ *>[^\n]+)(?:(?:\n)\ *>[^\n]+)*",
+        dotAll: true,
+        multiLine: true,
+      );
 
   @override
   InlineSpan span(
@@ -373,8 +391,13 @@ class BlockQuote extends InlineMd {
       }
     }
     var data = dataBuilder.toString().trim();
+    final bqStyle = config.styleSheet?.blockQuoteStyle;
+    final mergedTextStyle = (config.style ?? const TextStyle()).merge(
+      config.styleSheet?.blockQuote ?? bqStyle?.textStyle,
+    );
+    final conf = config.copyWith(style: mergedTextStyle);
     var child = TextSpan(
-      children: MarkdownComponent.generate(context, data, config, true),
+      children: MarkdownComponent.generate(context, data, conf, true),
     );
     return TextSpan(
       children: [
@@ -382,13 +405,17 @@ class BlockQuote extends InlineMd {
           child: Directionality(
             textDirection: config.textDirection,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
+              padding: (bqStyle?.margin as EdgeInsets?) ?? const EdgeInsets.symmetric(vertical: 2),
               child: BlockQuoteWidget(
-                color: DefaultTextStyle.of(context).style.color?.withAlpha(77) ?? config.style?.color?.withAlpha(77) ?? Colors.grey,
+                color: bqStyle?.border?.left.color ??
+                    DefaultTextStyle.of(context).style.color?.withAlpha(77) ??
+                    config.style?.color?.withAlpha(77) ??
+                    Colors.grey,
                 direction: config.textDirection,
-                width: 3,
+                width: bqStyle?.border?.left.width ?? 3,
                 child: Padding(
-                  padding: const EdgeInsetsDirectional.only(start: 8.0),
+                  padding: bqStyle?.padding ??
+                      const EdgeInsetsDirectional.only(start: 8.0),
                   child: config.getRich(child),
                 ),
               ),
@@ -412,6 +439,7 @@ class UnOrderedList extends BlockMd {
     final GptMarkdownConfig config,
   ) {
     var match = this.exp.firstMatch(text);
+    final listStyle = config.styleSheet?.listStyle;
 
     var child = MdWidget(context, "${match?[1]?.trim()}", true, config: config);
 
@@ -421,10 +449,10 @@ class UnOrderedList extends BlockMd {
           config.copyWith(),
         ) ??
         UnorderedListView(
-          bulletColor:
+          bulletColor: listStyle?.markerColor ??
               (config.style?.color ?? DefaultTextStyle.of(context).style.color),
-          padding: 7,
-          spacing: 10,
+          padding: listStyle?.indent ?? 7,
+          spacing: listStyle?.itemSpacing ?? 10,
           bulletSize:
               0.3 *
               (config.style?.fontSize ??
@@ -448,6 +476,7 @@ class OrderedList extends BlockMd {
     final GptMarkdownConfig config,
   ) {
     var match = this.exp.firstMatch(text);
+    final listStyle = config.styleSheet?.listStyle;
 
     var no = "${match?[1]}".trim();
 
@@ -461,9 +490,12 @@ class OrderedList extends BlockMd {
         OrderedListView(
           no: "$no.",
           textDirection: config.textDirection,
-          style: (config.style ?? const TextStyle()).copyWith(
-            fontWeight: FontWeight.w100,
-          ),
+          padding: listStyle?.indent ?? 6,
+          spacing: listStyle?.itemSpacing ?? 6,
+          style: listStyle?.markerTextStyle ??
+              (config.style ?? const TextStyle()).copyWith(
+                fontWeight: FontWeight.w100,
+              ),
           child: child,
         );
   }
@@ -493,25 +525,29 @@ class HighlightedText extends InlineMd {
       );
     }
 
-    var style =
-        config.style?.copyWith(
-          fontWeight: FontWeight.bold,
-          background:
-              Paint()
-                ..color = GptMarkdownTheme.of(context).highlightColor
-                ..strokeCap = StrokeCap.round
-                ..strokeJoin = StrokeJoin.round,
-        ) ??
-        TextStyle(
-          fontWeight: FontWeight.bold,
-          background:
-              Paint()
-                ..color = GptMarkdownTheme.of(context).highlightColor
-                ..strokeCap = StrokeCap.round
-                ..strokeJoin = StrokeJoin.round,
-        );
+    final codeStyle = config.styleSheet?.inlineCode ??
+        GptMarkdownTheme.of(context).inlineCode;
 
-    return TextSpan(text: highlightedText, style: style);
+    final effectiveBg = codeStyle?.backgroundColor ??
+        GptMarkdownTheme.of(context).highlightColor;
+
+    final effectiveStyle = (config.style ?? const TextStyle()).merge(
+      codeStyle ??
+          TextStyle(
+            fontFamily: 'monospace',
+            backgroundColor: effectiveBg,
+          ),
+    );
+
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: InlineCode(
+        code: highlightedText,
+        style: effectiveStyle,
+        backgroundColor: effectiveBg,
+      ),
+    );
   }
 }
 
@@ -529,9 +565,9 @@ class BoldMd extends InlineMd {
   ) {
     var match = exp.firstMatch(text.trim());
     var conf = config.copyWith(
-      style:
-          config.style?.copyWith(fontWeight: FontWeight.bold) ??
-          const TextStyle(fontWeight: FontWeight.bold),
+      style: (config.style ?? const TextStyle()).merge(
+        config.styleSheet?.strong ?? const TextStyle(fontWeight: FontWeight.bold),
+      ),
     );
     return TextSpan(
       children: MarkdownComponent.generate(
@@ -557,12 +593,13 @@ class StrikeMd extends InlineMd {
   ) {
     var match = exp.firstMatch(text.trim());
     var conf = config.copyWith(
-      style:
-          config.style?.copyWith(
-            decoration: TextDecoration.lineThrough,
-            decorationColor: config.style?.color,
-          ) ??
-          const TextStyle(decoration: TextDecoration.lineThrough),
+      style: (config.style ?? const TextStyle()).merge(
+        config.styleSheet?.del ??
+            TextStyle(
+              decoration: TextDecoration.lineThrough,
+              decorationColor: config.style?.color,
+            ),
+      ),
     );
     return TextSpan(
       children: MarkdownComponent.generate(
@@ -591,8 +628,8 @@ class ItalicMd extends InlineMd {
     var match = exp.firstMatch(text.trim());
     var data = match?[1] ?? match?[2];
     var conf = config.copyWith(
-      style: (config.style ?? const TextStyle()).copyWith(
-        fontStyle: FontStyle.italic,
+      style: (config.style ?? const TextStyle()).merge(
+        config.styleSheet?.em ?? const TextStyle(fontStyle: FontStyle.italic),
       ),
     );
     return TextSpan(
@@ -618,11 +655,17 @@ class LatexMathMultiLine extends BlockMd {
   ) {
     final match = exp.firstMatch(text.trim());
     final mathText = match?[1] ?? '';
-    final style = (config.style ?? const TextStyle()).copyWith(
-      fontFamily: 'monospace',
+    final latexStyle = config.styleSheet?.latexStyle;
+    final style = (config.style ?? const TextStyle()).merge(
+      latexStyle?.textStyle ?? const TextStyle(fontFamily: 'monospace'),
     );
+
+    if (config.latexBuilder != null) {
+      return config.latexBuilder!(context, mathText, style, false);
+    }
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: latexStyle?.margin ?? const EdgeInsets.symmetric(vertical: 8),
       child: config.getRich(TextSpan(text: mathText, style: style)),
     );
   }
@@ -641,12 +684,23 @@ class LatexMath extends InlineMd {
   ) {
     final match = exp.firstMatch(text.trim());
     final mathText = match?[1] ?? '';
-    final style = (config.style ?? const TextStyle()).copyWith(
-      fontFamily: 'monospace',
+    final latexStyle = config.styleSheet?.latexStyle;
+    final style = (config.style ?? const TextStyle()).merge(
+      latexStyle?.textStyle ?? const TextStyle(fontFamily: 'monospace'),
     );
+
+    if (config.latexBuilder != null) {
+      return WidgetSpan(
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        child: config.latexBuilder!(context, mathText, style, true),
+      );
+    }
+
     return TextSpan(text: mathText, style: style);
   }
 }
+
 class SourceTag extends InlineMd {
   @override
   RegExp get exp => RegExp(r"(?:【.*?)?\[(\d+?)\]");
@@ -662,27 +716,28 @@ class SourceTag extends InlineMd {
     if (content == null) {
       return const TextSpan();
     }
+    final sourceTagStyle = config.styleSheet?.sourceTagStyle;
     return WidgetSpan(
       alignment: PlaceholderAlignment.middle,
       child: Padding(
-        padding: const EdgeInsets.all(2),
+        padding: sourceTagStyle?.padding ?? const EdgeInsets.all(2),
         child:
             config.sourceTagBuilder?.call(
               context,
               content,
-              const TextStyle(),
+              sourceTagStyle?.textStyle ?? const TextStyle(),
             ) ??
             SizedBox(
               width: 20,
               height: 20,
               child: Material(
-                color: Theme.of(context).colorScheme.onInverseSurface,
+                color: sourceTagStyle?.backgroundColor ?? Theme.of(context).colorScheme.onInverseSurface,
                 shape: const OvalBorder(),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
                     content,
-                    // style: (style ?? const TextStyle()).copyWith(),
+                    style: sourceTagStyle?.textStyle,
                     textDirection: config.textDirection,
                   ),
                 ),
@@ -722,12 +777,6 @@ class ATagMd extends InlineMd {
     if (text[end + 1] != '(') {
       return const TextSpan();
     }
-
-    // First try to find the basic pattern
-    // final basicMatch = RegExp(r'(?<!\!)\[(.*)\]\(').firstMatch(text.trim());
-    // if (basicMatch == null) {
-    //   return const TextSpan();
-    // }
 
     final linkText = text.substring(start, end);
     final urlStart = end + 2;
@@ -770,14 +819,21 @@ class ATagMd extends InlineMd {
       false,
     );
     var theme = GptMarkdownTheme.of(context);
+    final linkColor = config.styleSheet?.linkStyle?.color ?? theme.linkColor;
+    final linkHoverColor = theme.linkHoverColor;
+
+    void onTap() {
+      config.onLinkTap?.call(url, linkText);
+      config.onLinkTab?.call(url, linkText);
+    }
 
     // Use custom builder if provided
     WidgetSpan? child;
     if (builder != null) {
       // Build a styled span to hand off to the custom linkBuilder.
       final linkStyle = (config.style ?? const TextStyle()).copyWith(
-        color: theme.linkColor,
-        decorationColor: theme.linkColor,
+        color: linkColor,
+        decorationColor: linkColor,
         decoration: TextDecoration.underline,
       );
       final linkConfig = config.copyWith(style: linkStyle);
@@ -794,7 +850,7 @@ class ATagMd extends InlineMd {
         baseline: TextBaseline.alphabetic,
         alignment: PlaceholderAlignment.baseline,
         child: GestureDetector(
-          onTap: () => config.onLinkTap?.call(url, linkText),
+          onTap: onTap,
           child: builder(
             context,
             linkTextSpan,
@@ -811,11 +867,9 @@ class ATagMd extends InlineMd {
       alignment: PlaceholderAlignment.baseline,
       baseline: TextBaseline.alphabetic,
       child: LinkButton(
-        hoverColor: theme.linkHoverColor,
-        color: theme.linkColor,
-        onPressed: () {
-          config.onLinkTap?.call(url, linkText);
-        },
+        hoverColor: linkHoverColor,
+        color: linkColor,
+        onPressed: onTap,
         text: linkText,
         config: config,
         spanBuilder: (color) {
@@ -1223,6 +1277,14 @@ class TableMd extends BlockMd {
       );
     }
 
+    final tableStyle = config.styleSheet?.tableStyle;
+    final borderColor = tableStyle?.borderColor ??
+        DefaultTextStyle.of(context).style.color ??
+        config.style?.color ??
+        Colors.grey;
+    final headerBgColor = tableStyle?.headerBackgroundColor ??
+        Theme.of(context).colorScheme.surfaceContainerHighest;
+
     final controller = ScrollController();
     return Scrollbar(
       controller: controller,
@@ -1233,10 +1295,11 @@ class TableMd extends BlockMd {
           textDirection: config.textDirection,
           defaultColumnWidth: CustomTableColumnWidth(),
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          border: TableBorder.all(
-            width: 1,
-            color: DefaultTextStyle.of(context).style.color ?? config.style?.color ?? Colors.grey,
-          ),
+          border: tableStyle?.border ??
+              TableBorder.all(
+                width: 1,
+                color: borderColor,
+              ),
           children:
               value
                   .asMap()
@@ -1253,10 +1316,7 @@ class TableMd extends BlockMd {
                       decoration:
                           (hasHeader && entry.key == 0)
                               ? BoxDecoration(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
+                                color: headerBgColor,
                               )
                               : null,
                       children: List.generate(maxCol, (index) {
@@ -1267,12 +1327,14 @@ class TableMd extends BlockMd {
                           return const SizedBox();
                         }
 
+                        final isHeaderCell = hasHeader && entry.key == 0;
+                        final cellPadding = isHeaderCell
+                            ? (tableStyle?.headerPadding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 4))
+                            : (tableStyle?.cellPadding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 4));
+
                         // Apply alignment based on column alignment
                         Widget content = Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                          padding: cellPadding,
                           child: MdWidget(
                             context,
                             (e[index] ?? "").trim(),

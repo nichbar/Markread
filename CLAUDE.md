@@ -22,7 +22,7 @@
 
 - Use Riverpod `Notifier`/`AsyncNotifier` pattern (no code generation)
 - Use GoRouter for navigation with route parameters
-- Use `gpt_markdown` 1.1.7 for markdown rendering (no `selectable` parameter — it does not exist)
+- Use `gpt_markdown` 1.2.1 for markdown rendering
 - Use `FilePicker.pickFiles()` (not `FilePicker.platform.pickFiles()`) for file_picker v11 compatibility
 - Feature-based modular structure: each feature is self-contained
 - Prefer `const` constructors where possible

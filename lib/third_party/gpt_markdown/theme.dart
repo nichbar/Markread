@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'styles/gpt_markdown_style_sheet.dart';
+
 /// Theme defined for `GptMarkdown` widget
 class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
   GptMarkdownThemeData._({
@@ -10,12 +12,14 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
     required this.h4,
     required this.h5,
     required this.h6,
+    required this.inlineCode,
     required this.hrLineThickness,
     required this.hrLineColor,
     required this.hrLinePadding,
     required this.linkColor,
     required this.linkHoverColor,
     required this.autoAddDividerLineAfterH1,
+    this.styleSheet,
   });
 
   /// A factory constructor for `GptMarkdownThemeData`.
@@ -28,12 +32,14 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
     TextStyle? h4,
     TextStyle? h5,
     TextStyle? h6,
+    TextStyle? inlineCode,
     double? hrLineThickness,
     Color? hrLineColor,
     EdgeInsets? hrLinePadding,
     Color? linkColor,
     Color? linkHoverColor,
     bool? autoAddDividerLineAfterH1,
+    GptMarkdownStyleSheet? styleSheet,
   }) {
     ThemeData themeData = switch (brightness) {
       Brightness.light => ThemeData.light(),
@@ -68,12 +74,14 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
       h4: h4,
       h5: h5,
       h6: h6,
+      inlineCode: inlineCode,
       hrLineThickness: hrLineThickness,
       hrLineColor: hrLineColor,
       hrLinePadding: hrLinePadding,
       linkColor: linkColor,
       linkHoverColor: linkHoverColor,
       autoAddDividerLineAfterH1: autoAddDividerLineAfterH1,
+      styleSheet: styleSheet,
     );
   }
 
@@ -89,12 +97,17 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
       h4: textTheme.titleLarge?.copyWith(color: null),
       h5: textTheme.titleMedium?.copyWith(color: null),
       h6: textTheme.titleSmall?.copyWith(color: null),
+      inlineCode: TextStyle(
+        fontFamily: 'monospace',
+        backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+      ),
       hrLineThickness: 1,
       hrLineColor: theme.colorScheme.outline,
       hrLinePadding: EdgeInsets.zero,
       linkColor: Colors.blue,
       linkHoverColor: Colors.red,
       autoAddDividerLineAfterH1: true,
+      styleSheet: GptMarkdownStyleSheet.fromTheme(theme),
     );
   }
 
@@ -118,6 +131,10 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
 
   /// The style of the h6 text.
   TextStyle? h6;
+
+  /// The style of the inline code text.
+  TextStyle? inlineCode;
+
   double hrLineThickness;
 
   /// The color of the horizontal line.
@@ -135,6 +152,9 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
   /// Whether to insert a horizontal divider after `#` (h1) headings.
   bool autoAddDividerLineAfterH1;
 
+  /// Optional style sheet.
+  GptMarkdownStyleSheet? styleSheet;
+
   /// A method to copy the `GptMarkdownThemeData`.
   @override
   GptMarkdownThemeData copyWith({
@@ -145,12 +165,14 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
     TextStyle? h4,
     TextStyle? h5,
     TextStyle? h6,
+    TextStyle? inlineCode,
     double? hrLineThickness,
     Color? hrLineColor,
     EdgeInsets? hrLinePadding,
     Color? linkColor,
     Color? linkHoverColor,
     bool? autoAddDividerLineAfterH1,
+    GptMarkdownStyleSheet? styleSheet,
   }) {
     return GptMarkdownThemeData._(
       highlightColor: highlightColor ?? this.highlightColor,
@@ -160,6 +182,7 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
       h4: h4 ?? this.h4,
       h5: h5 ?? this.h5,
       h6: h6 ?? this.h6,
+      inlineCode: inlineCode ?? this.inlineCode,
       hrLineThickness: hrLineThickness ?? this.hrLineThickness,
       hrLineColor: hrLineColor ?? this.hrLineColor,
       hrLinePadding: hrLinePadding ?? this.hrLinePadding,
@@ -167,6 +190,7 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
       linkHoverColor: linkHoverColor ?? this.linkHoverColor,
       autoAddDividerLineAfterH1:
           autoAddDividerLineAfterH1 ?? this.autoAddDividerLineAfterH1,
+      styleSheet: styleSheet ?? this.styleSheet,
     );
   }
 
@@ -179,12 +203,14 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
         h4 == other.h4 &&
         h5 == other.h5 &&
         h6 == other.h6 &&
+        inlineCode == other.inlineCode &&
         hrLineThickness == other.hrLineThickness &&
         hrLineColor == other.hrLineColor &&
         hrLinePadding == other.hrLinePadding &&
         linkColor == other.linkColor &&
         linkHoverColor == other.linkHoverColor &&
-        autoAddDividerLineAfterH1 == other.autoAddDividerLineAfterH1;
+        autoAddDividerLineAfterH1 == other.autoAddDividerLineAfterH1 &&
+        styleSheet == other.styleSheet;
   }
 
   @override
@@ -201,6 +227,7 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
       h4: TextStyle.lerp(h4, other.h4, t) ?? h4,
       h5: TextStyle.lerp(h5, other.h5, t) ?? h5,
       h6: TextStyle.lerp(h6, other.h6, t) ?? h6,
+      inlineCode: TextStyle.lerp(inlineCode, other.inlineCode, t) ?? inlineCode,
       hrLineThickness: Tween(
         begin: hrLineThickness,
         end: other.hrLineThickness,
@@ -214,11 +241,12 @@ class GptMarkdownThemeData extends ThemeExtension<GptMarkdownThemeData> {
           Color.lerp(linkHoverColor, other.linkHoverColor, t) ?? linkHoverColor,
       autoAddDividerLineAfterH1:
           t < 0.5 ? autoAddDividerLineAfterH1 : other.autoAddDividerLineAfterH1,
+      styleSheet: GptMarkdownStyleSheet.lerp(styleSheet, other.styleSheet, t),
     );
   }
 }
 
-/// Wrap a `Widget` with `GptMarkdownTheme` to provide `GptMarkdownThemeData` in your intiar app.
+/// Wrap a `Widget` with `GptMarkdownTheme` to provide `GptMarkdownThemeData` in your entire app.
 class GptMarkdownTheme extends InheritedWidget {
   const GptMarkdownTheme({
     super.key,

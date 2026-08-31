@@ -1,9 +1,7 @@
 // lib/features/viewer/widgets/markdown_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:markread/third_party/gpt_markdown/custom_widgets/markdown_config.dart';
 import 'package:markread/third_party/gpt_markdown/gpt_markdown.dart';
-import 'package:markread/third_party/gpt_markdown/theme.dart';
 import '../../../core/models/user_preferences.dart';
 import '../providers/viewer_provider.dart';
 import '../services/markdown_block_splitter.dart';
