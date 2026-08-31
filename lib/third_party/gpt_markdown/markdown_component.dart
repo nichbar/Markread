@@ -1,5 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'custom_widgets/markdown_config.dart';
 import 'custom_widgets/custom_divider.dart';
@@ -840,7 +844,8 @@ class ATagMd extends InlineMd {
 /// Image component
 class ImageMd extends InlineMd {
   @override
-  RegExp get exp => RegExp(r"\!\[[^\[\]]*\]\([^\s]*\)");
+  RegExp get exp =>
+      RegExp(r"\!\[[^\[\]]*\]\((?:[^\s\)]*|<[^\n>]*>|[^\n\)]*)\)");
 
   @override
   InlineSpan span(
@@ -882,7 +887,20 @@ class ImageMd extends InlineMd {
       return const TextSpan();
     }
 
-    final url = text.substring(urlStart, urlEnd).trim();
+    var url = text.substring(urlStart, urlEnd).trim();
+
+    // Strip leading and trailing angle brackets if wrapped in <...>
+    if (url.startsWith('<') && url.endsWith('>') && url.length >= 2) {
+      url = url.substring(1, url.length - 1).trim();
+    }
+
+    // If there's an optional title like `url "title"`, extract just the url (for non-data URLs)
+    if (!url.startsWith('data:')) {
+      final spaceIndex = url.indexOf(RegExp(r'\s+["\x27]'));
+      if (spaceIndex != -1) {
+        url = url.substring(0, spaceIndex).trim();
+      }
+    }
 
     double? height;
     double? width;
@@ -895,36 +913,215 @@ class ImageMd extends InlineMd {
     final Widget image;
     if (config.imageBuilder != null) {
       image = config.imageBuilder!(context, url, width, height);
+    } else if (url.startsWith('data:')) {
+      image = _buildDataUriImage(context, url, width, height);
     } else {
-      image = SizedBox(
+      image = _buildNetworkImage(context, url, width, height);
+    }
+
+    final ending = text.substring(urlEnd + 1);
+    if (ending.isNotEmpty) {
+      final endingSpans = MarkdownComponent.generate(
+        context,
+        ending,
+        config,
+        false,
+      );
+      return TextSpan(
+        children: [
+          WidgetSpan(alignment: PlaceholderAlignment.bottom, child: image),
+          ...endingSpans,
+        ],
+      );
+    }
+
+    return WidgetSpan(alignment: PlaceholderAlignment.bottom, child: image);
+  }
+
+  Widget _buildDataUriImage(
+    BuildContext context,
+    String dataUri,
+    double? width,
+    double? height,
+  ) {
+    try {
+      final commaIndex = dataUri.indexOf(',');
+      if (commaIndex == -1) {
+        return const CustomImageError();
+      }
+
+      final header = dataUri.substring(5, commaIndex).trim().toLowerCase();
+      final rawPayload = dataUri.substring(commaIndex + 1);
+
+      final isBase64 = header.contains(';base64') || header == 'base64';
+      final isSvg =
+          header.contains('image/svg+xml') ||
+          header.contains('image/svg') ||
+          (!isBase64 && rawPayload.trimLeft().startsWith('<svg'));
+
+      if (isSvg) {
+        return _buildSvgDataImage(
+          rawPayload: rawPayload,
+          isBase64: isBase64,
+          width: width,
+          height: height,
+        );
+      } else {
+        return _buildRasterDataImage(
+          rawPayload: rawPayload,
+          isBase64: isBase64,
+          width: width,
+          height: height,
+        );
+      }
+    } catch (_) {
+      return const CustomImageError();
+    }
+  }
+
+  Widget _buildSvgDataImage({
+    required String rawPayload,
+    required bool isBase64,
+    double? width,
+    double? height,
+  }) {
+    try {
+      if (isBase64) {
+        final cleanedPayload = rawPayload.replaceAll(RegExp(r'\s+'), '');
+        final bytes = base64Decode(cleanedPayload);
+        return SizedBox(
+          width: width,
+          height: height,
+          child: SvgPicture.memory(
+            bytes,
+            width: width,
+            height: height,
+            fit: BoxFit.contain,
+            placeholderBuilder: (context) => const CustomImageLoading(),
+            errorBuilder: (context, error, stackTrace) =>
+                const CustomImageError(),
+          ),
+        );
+      } else {
+        String svgString;
+        try {
+          svgString = Uri.decodeComponent(rawPayload);
+        } catch (_) {
+          svgString = rawPayload;
+        }
+        return SizedBox(
+          width: width,
+          height: height,
+          child: SvgPicture.string(
+            svgString,
+            width: width,
+            height: height,
+            fit: BoxFit.contain,
+            placeholderBuilder: (context) => const CustomImageLoading(),
+            errorBuilder: (context, error, stackTrace) =>
+                const CustomImageError(),
+          ),
+        );
+      }
+    } catch (_) {
+      return const CustomImageError();
+    }
+  }
+
+  Widget _buildRasterDataImage({
+    required String rawPayload,
+    required bool isBase64,
+    double? width,
+    double? height,
+  }) {
+    try {
+      final Uint8List bytes;
+      if (isBase64) {
+        final cleanedPayload = rawPayload.replaceAll(RegExp(r'\s+'), '');
+        bytes = base64Decode(cleanedPayload);
+      } else {
+        try {
+          final decoded = Uri.decodeComponent(rawPayload);
+          bytes = Uint8List.fromList(utf8.encode(decoded));
+        } catch (_) {
+          return const CustomImageError();
+        }
+      }
+
+      if (bytes.isEmpty) {
+        return const CustomImageError();
+      }
+
+      return SizedBox(
         width: width,
         height: height,
-        child: Image(
-          image: NetworkImage(url),
-          loadingBuilder: (
-            BuildContext context,
-            Widget child,
-            ImageChunkEvent? loadingProgress,
-          ) {
-            if (loadingProgress == null) {
-              return child;
-            }
-            return CustomImageLoading(
-              progress:
-                  loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                      : 1,
-            );
-          },
-          fit: BoxFit.fill,
+        child: Image.memory(
+          bytes,
+          width: width,
+          height: height,
+          fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) {
             return const CustomImageError();
           },
         ),
       );
+    } catch (_) {
+      return const CustomImageError();
     }
-    return WidgetSpan(alignment: PlaceholderAlignment.bottom, child: image);
+  }
+
+  Widget _buildNetworkImage(
+    BuildContext context,
+    String url,
+    double? width,
+    double? height,
+  ) {
+    final cleanPath = url.toLowerCase().split('?').first.split('#').first;
+    final isSvg = cleanPath.endsWith('.svg');
+
+    if (isSvg) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: SvgPicture.network(
+          url,
+          width: width,
+          height: height,
+          fit: BoxFit.contain,
+          placeholderBuilder: (context) => const CustomImageLoading(),
+          errorBuilder: (context, error, stackTrace) =>
+              const CustomImageError(),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Image(
+        image: NetworkImage(url),
+        loadingBuilder: (
+          BuildContext context,
+          Widget child,
+          ImageChunkEvent? loadingProgress,
+        ) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          return CustomImageLoading(
+            progress:
+                loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : 1,
+          );
+        },
+        fit: BoxFit.fill,
+        errorBuilder: (context, error, stackTrace) {
+          return const CustomImageError();
+        },
+      ),
+    );
   }
 }
 
