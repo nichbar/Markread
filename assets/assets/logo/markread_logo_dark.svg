@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 180">
+  <!-- Markread logo (dark mode): geometric M + markdown down-arrow -->
+  <path fill="#E4E4E4" d="M0 180V0h45l45 54L135 0h45v180h-45V72l-45 54-45-54v108H0z"/>
+  <path fill="#8F9195" d="M255 0h30v108h45L270 180 210 108h45V0z"/>
+</svg>
