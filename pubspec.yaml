@@ -63,4 +63,5 @@ flutter:
 
   assets:
     - assets/logo/markread_logo.svg
+    - assets/logo/markread_logo_dark.svg
 

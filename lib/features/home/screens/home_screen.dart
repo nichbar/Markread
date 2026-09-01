@@ -69,6 +69,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -88,7 +89,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SvgPicture.asset(
-                'assets/logo/markread_logo.svg',
+                isDark
+                    ? 'assets/logo/markread_logo_dark.svg'
+                    : 'assets/logo/markread_logo.svg',
                 width: 120,
                 height: 84,
               ),
