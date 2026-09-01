@@ -1383,9 +1383,10 @@ class CodeBlockMd extends BlockMd {
     String text,
     final GptMarkdownConfig config,
   ) {
-    String codes = this.exp.firstMatch(text)?[2] ?? "";
-    String name = this.exp.firstMatch(text)?[1] ?? "";
-    codes = codes.replaceAll(r"```", "");
+    var match = this.exp.firstMatch(text);
+    String name = match?[1] ?? "";
+    String codes =
+        match?[3] ?? match?[5] ?? (match?[2] ?? "").replaceAll(r"```", "");
     bool closed = text.endsWith("```");
 
     return config.codeBuilder?.call(context, name, codes, closed) ??

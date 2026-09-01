@@ -35,7 +35,12 @@ class SourceCodeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final wrapped = '```$language\n$content\n```';
+    final normalizedContent = content.endsWith('\r\n')
+        ? content.substring(0, content.length - 2)
+        : (content.endsWith('\n')
+            ? content.substring(0, content.length - 1)
+            : content);
+    final wrapped = '```$language\n$normalizedContent\n```';
 
     final effectiveFontSize = fontSize * fontScale;
     final effectiveCodeFontFamily = codeFontFamily ?? 'monospace';

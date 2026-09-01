@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/user_preferences.dart';
+import '../../../core/providers/history_provider.dart';
 import '../../../core/providers/preferences_provider.dart';
 import '../../../core/providers/reading_progress_provider.dart';
 import '../../../core/theme/app_theme.dart';
@@ -345,6 +346,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
         byteLength: state.fileByteLength,
         charOffset: charOffset,
       ));
+      unawaited(ref.read(historyProvider.notifier).updateProgress(
+        fileName: state.fileName,
+        byteLength: state.fileByteLength,
+        charOffset: charOffset,
+      ));
     } catch (_) {
       // Provider may already be unavailable during teardown.
     }
@@ -396,6 +402,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
 
     _lastSavedCharOffset = charOffset;
     await ref.read(readingProgressProvider).save(
+          fileName: state.fileName,
+          byteLength: state.fileByteLength,
+          charOffset: charOffset,
+        );
+    await ref.read(historyProvider.notifier).updateProgress(
           fileName: state.fileName,
           byteLength: state.fileByteLength,
           charOffset: charOffset,
