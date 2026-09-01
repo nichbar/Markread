@@ -92,8 +92,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 isDark
                     ? 'assets/logo/markread_logo_dark.svg'
                     : 'assets/logo/markread_logo.svg',
-                width: 120,
-                height: 84,
+                width: 132,
+                height: 72,
               ),
               const SizedBox(height: 16),
               Text(
