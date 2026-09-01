@@ -125,6 +125,69 @@ void main() {
     expect(wrap, isTrue);
   });
 
+  testWidgets('CodeFontScope defaults to monospace when missing or null', (tester) async {
+    String? resolvedFont;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            resolvedFont = resolveCodeFontFamily(context);
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+    expect(resolvedFont, 'monospace');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CodeFontScope(
+          fontFamily: null,
+          child: Builder(
+            builder: (context) {
+              resolvedFont = resolveCodeFontFamily(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(resolvedFont, 'monospace');
+  });
+
+  testWidgets('CodeFontScope notifies on fontFamily change', (tester) async {
+    String? resolvedFont;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CodeFontScope(
+          fontFamily: 'Fira Code',
+          child: Builder(
+            builder: (context) {
+              resolvedFont = resolveCodeFontFamily(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(resolvedFont, 'Fira Code');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CodeFontScope(
+          fontFamily: 'JetBrains Mono',
+          child: Builder(
+            builder: (context) {
+              resolvedFont = resolveCodeFontFamily(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(resolvedFont, 'JetBrains Mono');
+  });
+
   testWidgets('fencedCodeBody wraps or scrolls based on flag', (tester) async {
     const span = TextSpan(text: 'long line of code that may wrap');
 

@@ -13,6 +13,7 @@ void main() {
       expect(prefs.lineHeight, 1.6);
       expect(prefs.textAlignment, ReadingTextAlign.left);
       expect(prefs.fontFamily, isNull);
+      expect(prefs.codeFontFamily, isNull);
     });
 
     test('copyWith updates fontFamily and clearFontFamily clears it', () {
@@ -22,6 +23,15 @@ void main() {
 
       final cleared = updated.copyWith(clearFontFamily: true);
       expect(cleared.fontFamily, isNull);
+    });
+
+    test('copyWith updates codeFontFamily and clearCodeFontFamily clears it', () {
+      const prefs = UserPreferences();
+      final updated = prefs.copyWith(codeFontFamily: 'Fira Code');
+      expect(updated.codeFontFamily, 'Fira Code');
+
+      final cleared = updated.copyWith(clearCodeFontFamily: true);
+      expect(cleared.codeFontFamily, isNull);
     });
   });
 }

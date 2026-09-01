@@ -87,7 +87,7 @@ class _MonospaceInlineCode extends StatelessWidget {
     final query = SearchHighlightScope.queryOf(context);
     // Typora: font-size 0.9em; color only (no bold)
     final baseStyle = style.copyWith(
-      fontFamily: 'monospace',
+      fontFamily: resolveCodeFontFamily(context),
       fontSize: baseSize * 0.9,
       fontWeight: FontWeight.normal,
       color: tokens.inlineFg,
@@ -191,7 +191,7 @@ class _MonospaceCodeBlockState extends State<_MonospaceCodeBlock> {
                   child: Text(
                     label,
                     style: TextStyle(
-                      fontFamily: 'monospace',
+                      fontFamily: resolveCodeFontFamily(context),
                       fontSize: headerSize,
                       color: tokens.mutedFg,
                       fontWeight: FontWeight.w500,
@@ -231,7 +231,7 @@ class _MonospaceCodeBlockState extends State<_MonospaceCodeBlock> {
               text: widget.codes,
               query: SearchHighlightScope.queryOf(context),
               style: TextStyle(
-                fontFamily: 'monospace',
+                fontFamily: resolveCodeFontFamily(context),
                 fontSize: codeSize,
                 height: 1.45,
                 color: tokens.blockFg,

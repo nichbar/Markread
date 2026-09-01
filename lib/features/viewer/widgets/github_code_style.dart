@@ -94,7 +94,7 @@ class _GithubInlineCode extends StatelessWidget {
     // Keep height tight so inherited body line-height (e.g. 1.5–1.6) does
     // not push glyphs down inside the padded WidgetSpan chip.
     final baseStyle = style.copyWith(
-      fontFamily: 'monospace',
+      fontFamily: resolveCodeFontFamily(context),
       fontSize: baseSize * 0.85,
       fontWeight: FontWeight.normal,
       color: tokens.inlineFg,
@@ -202,7 +202,7 @@ class _GithubCodeBlockState extends State<_GithubCodeBlock> {
                   child: Text(
                     label,
                     style: TextStyle(
-                      fontFamily: 'monospace',
+                      fontFamily: resolveCodeFontFamily(context),
                       fontSize: headerSize,
                       color: tokens.mutedFg,
                       fontWeight: FontWeight.w500,
@@ -240,7 +240,7 @@ class _GithubCodeBlockState extends State<_GithubCodeBlock> {
               text: widget.codes,
               query: SearchHighlightScope.queryOf(context),
               style: TextStyle(
-                fontFamily: 'monospace',
+                fontFamily: resolveCodeFontFamily(context),
                 fontSize: codeSize,
                 height: 1.45,
                 color: tokens.blockFg,
@@ -263,7 +263,7 @@ Widget defaultInlineCode(BuildContext context, String text, TextStyle style) {
   final theme = Theme.of(context);
   final chipBg = theme.colorScheme.onSurfaceVariant.withAlpha(40);
   final baseStyle = style.copyWith(
-    fontFamily: 'monospace',
+    fontFamily: resolveCodeFontFamily(context),
     fontSize: baseSize * 0.9,
     height: 1.2,
     leadingDistribution: TextLeadingDistribution.even,
@@ -313,7 +313,7 @@ class _DefaultCodeBlock extends StatelessWidget {
     final baseSize = _resolveBaseFontSize(context, null);
     final query = SearchHighlightScope.queryOf(context);
     final style = TextStyle(
-      fontFamily: 'monospace',
+      fontFamily: resolveCodeFontFamily(context),
       fontSize: baseSize * 0.9,
       height: 1.4,
       color: theme.colorScheme.onSurface,

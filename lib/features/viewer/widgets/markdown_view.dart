@@ -24,6 +24,7 @@ class MarkdownView extends StatefulWidget {
   final double lineHeight;
   final ReadingTextAlign textAlignment;
   final String? fontFamily;
+  final String? codeFontFamily;
   final bool isWordWrapEnabled;
   /// Soft-wrap long lines inside fenced ``` code blocks (when word wrap is on).
   final bool isCodeBlockWrapEnabled;
@@ -73,6 +74,7 @@ class MarkdownView extends StatefulWidget {
     this.lineHeight = 1.6,
     this.textAlignment = ReadingTextAlign.left,
     this.fontFamily,
+    this.codeFontFamily,
     this.isWordWrapEnabled = true,
     this.isCodeBlockWrapEnabled = true,
     this.scrollController,
@@ -160,6 +162,7 @@ class MarkdownViewState extends State<MarkdownView> {
         oldWidget.fontSize != widget.fontSize ||
         oldWidget.lineHeight != widget.lineHeight ||
         oldWidget.fontFamily != widget.fontFamily ||
+        oldWidget.codeFontFamily != widget.codeFontFamily ||
         oldWidget.isWordWrapEnabled != widget.isWordWrapEnabled ||
         oldWidget.isCodeBlockWrapEnabled != widget.isCodeBlockWrapEnabled ||
         oldWidget.textAlignment != widget.textAlignment ||
@@ -963,14 +966,17 @@ class MarkdownViewState extends State<MarkdownView> {
       }
     }
 
-    return CodeBlockWrapScope(
-      wrap: widget.isCodeBlockWrapEnabled,
-      child: SearchHighlightScope(
-        query: widget.searchQuery,
-        child: ZoomableArea(
-          scale: widget.fontScale,
-          onScaleChanged: widget.onFontScaleChanged,
-          child: result,
+    return CodeFontScope(
+      fontFamily: widget.codeFontFamily,
+      child: CodeBlockWrapScope(
+        wrap: widget.isCodeBlockWrapEnabled,
+        child: SearchHighlightScope(
+          query: widget.searchQuery,
+          child: ZoomableArea(
+            scale: widget.fontScale,
+            onScaleChanged: widget.onFontScaleChanged,
+            child: result,
+          ),
         ),
       ),
     );

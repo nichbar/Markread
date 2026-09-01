@@ -29,5 +29,26 @@ void main() {
       expect(container.read(preferencesProvider).fontFamily, isNull);
       expect(prefs.getString('fontFamily'), isNull);
     });
+
+    test('updates and clears codeFontFamily', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(preferencesProvider.notifier);
+      expect(container.read(preferencesProvider).codeFontFamily, isNull);
+
+      await notifier.setCodeFontFamily('JetBrains Mono');
+      expect(
+        container.read(preferencesProvider).codeFontFamily,
+        'JetBrains Mono',
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('codeFontFamily'), 'JetBrains Mono');
+
+      await notifier.setCodeFontFamily(null);
+      expect(container.read(preferencesProvider).codeFontFamily, isNull);
+      expect(prefs.getString('codeFontFamily'), isNull);
+    });
   });
 }

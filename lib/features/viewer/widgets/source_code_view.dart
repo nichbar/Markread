@@ -10,6 +10,7 @@ class SourceCodeView extends StatelessWidget {
   final String language;
   final double fontSize;
   final double lineHeight;
+  final String? codeFontFamily;
   final bool isWordWrapEnabled;
   final ScrollController? scrollController;
   final void Function(String url, String title)? onLinkTap;
@@ -23,6 +24,7 @@ class SourceCodeView extends StatelessWidget {
     required this.language,
     this.fontSize = 16.0,
     this.lineHeight = 1.6,
+    this.codeFontFamily,
     this.isWordWrapEnabled = true,
     this.scrollController,
     this.onLinkTap,
@@ -36,18 +38,19 @@ class SourceCodeView extends StatelessWidget {
     final wrapped = '```$language\n$content\n```';
 
     final effectiveFontSize = fontSize * fontScale;
+    final effectiveCodeFontFamily = codeFontFamily ?? 'monospace';
     final stableStyle = DefaultTextStyle.of(context).style.copyWith(
       color: null,
       fontSize: effectiveFontSize,
       height: lineHeight,
-      fontFamily: 'monospace',
+      fontFamily: effectiveCodeFontFamily,
     );
 
     final codeWidget = DefaultTextStyle(
       style: TextStyle(
         fontSize: effectiveFontSize,
         height: lineHeight,
-        fontFamily: 'monospace',
+        fontFamily: effectiveCodeFontFamily,
       ),
       child: SingleChildScrollView(
         controller: scrollController,
@@ -64,11 +67,14 @@ class SourceCodeView extends StatelessWidget {
 
     // Source-code mode is one big fence; follow document wrap, not a separate
     // code-block wrap setting.
-    final scoped = CodeBlockWrapScope(
-      wrap: isWordWrapEnabled,
-      child: SearchHighlightScope(
-        query: searchQuery,
-        child: codeWidget,
+    final scoped = CodeFontScope(
+      fontFamily: codeFontFamily,
+      child: CodeBlockWrapScope(
+        wrap: isWordWrapEnabled,
+        child: SearchHighlightScope(
+          query: searchQuery,
+          child: codeWidget,
+        ),
       ),
     );
 

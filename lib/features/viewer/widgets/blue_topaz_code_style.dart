@@ -89,7 +89,7 @@ class _BlueTopazInlineCode extends StatelessWidget {
     final query = SearchHighlightScope.queryOf(context);
     // Typora: font-size 0.825em; font-weight bold; padding ~2px; radius 3px
     final baseStyle = style.copyWith(
-      fontFamily: 'monospace',
+      fontFamily: resolveCodeFontFamily(context),
       fontSize: baseSize * 0.825,
       fontWeight: FontWeight.bold,
       color: tokens.inlineFg,
@@ -194,7 +194,7 @@ class _BlueTopazCodeBlockState extends State<_BlueTopazCodeBlock> {
                   child: Text(
                     label,
                     style: TextStyle(
-                      fontFamily: 'monospace',
+                      fontFamily: resolveCodeFontFamily(context),
                       fontSize: headerSize,
                       color: tokens.mutedFg,
                       fontWeight: FontWeight.w500,
@@ -234,7 +234,7 @@ class _BlueTopazCodeBlockState extends State<_BlueTopazCodeBlock> {
               text: widget.codes,
               query: SearchHighlightScope.queryOf(context),
               style: TextStyle(
-                fontFamily: 'monospace',
+                fontFamily: resolveCodeFontFamily(context),
                 fontSize: codeSize,
                 height: 1.45,
                 color: tokens.blockFg,

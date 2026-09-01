@@ -53,6 +53,37 @@ class CodeBlockWrapScope extends InheritedWidget {
   }
 }
 
+/// Propagates the preferred code font family to nested code widgets.
+/// Defaults to generic `'monospace'` when null or absent.
+class CodeFontScope extends InheritedWidget {
+  const CodeFontScope({
+    super.key,
+    this.fontFamily,
+    required super.child,
+  });
+
+  final String? fontFamily;
+
+  static CodeFontScope? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<CodeFontScope>();
+  }
+
+  static String? fontFamilyOf(BuildContext context) {
+    return maybeOf(context)?.fontFamily;
+  }
+
+  @override
+  bool updateShouldNotify(CodeFontScope oldWidget) {
+    return fontFamily != oldWidget.fontFamily;
+  }
+}
+
+/// Resolves the active code font family from [CodeFontScope], falling back
+/// to `'monospace'`.
+String resolveCodeFontFamily(BuildContext context) {
+  return CodeFontScope.fontFamilyOf(context) ?? 'monospace';
+}
+
 /// Fenced code body: soft-wrap when [wrap] is true, else horizontal scroll.
 Widget fencedCodeBody({
   required bool wrap,

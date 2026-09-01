@@ -92,15 +92,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           systemFontsAsync.when(
             data: (fonts) {
               if (fonts.isEmpty) return const SizedBox.shrink();
-              return ListTile(
-                title: const Text('Font family'),
-                subtitle: Text(prefs.fontFamily ?? 'System default'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showFontSelectionSheet(
-                  context,
-                  fonts: fonts,
-                  selectedFont: prefs.fontFamily,
-                ),
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    title: const Text('Content font'),
+                    subtitle: Text(prefs.fontFamily ?? 'System default'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showFontSelectionSheet(
+                      context,
+                      title: 'Content Font',
+                      defaultLabel: 'System default',
+                      fonts: fonts,
+                      selectedFont: prefs.fontFamily,
+                      onFontSelected: (font) {
+                        ref
+                            .read(preferencesProvider.notifier)
+                            .setFontFamily(font);
+                      },
+                    ),
+                  ),
+                  ListTile(
+                    title: const Text('Code font'),
+                    subtitle: Text(
+                      prefs.codeFontFamily ?? 'System default (Monospace)',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showFontSelectionSheet(
+                      context,
+                      title: 'Code Font',
+                      defaultLabel: 'System default (Monospace)',
+                      fonts: fonts,
+                      selectedFont: prefs.codeFontFamily,
+                      onFontSelected: (font) {
+                        ref
+                            .read(preferencesProvider.notifier)
+                            .setCodeFontFamily(font);
+                      },
+                    ),
+                  ),
+                ],
               );
             },
             loading: () => const SizedBox.shrink(),
@@ -322,8 +353,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _showFontSelectionSheet(
     BuildContext context, {
+    required String title,
+    required String defaultLabel,
     required List<String> fonts,
     required String? selectedFont,
+    required ValueChanged<String?> onFontSelected,
   }) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -331,11 +365,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       useSafeArea: true,
       builder: (bottomSheetContext) {
         return _FontSelectionSheet(
+          title: title,
+          defaultLabel: defaultLabel,
           fonts: fonts,
           selectedFont: selectedFont,
-          onFontSelected: (font) {
-            ref.read(preferencesProvider.notifier).setFontFamily(font);
-          },
+          onFontSelected: onFontSelected,
         );
       },
     );
@@ -400,11 +434,15 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _FontSelectionSheet extends StatefulWidget {
+  final String title;
+  final String defaultLabel;
   final List<String> fonts;
   final String? selectedFont;
   final ValueChanged<String?> onFontSelected;
 
   const _FontSelectionSheet({
+    this.title = 'Font Family',
+    this.defaultLabel = 'System default',
     required this.fonts,
     required this.selectedFont,
     required this.onFontSelected,
@@ -443,6 +481,7 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
             .toList();
 
     final showSystemDefault = _searchQuery.isEmpty ||
+        widget.defaultLabel.toLowerCase().contains(_searchQuery) ||
         'system default'.contains(_searchQuery);
 
     return DraggableScrollableSheet(
@@ -467,7 +506,7 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
               child: Row(
                 children: [
                   Text(
-                    'Font Family',
+                    widget.title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -515,7 +554,7 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                     final isSelected = widget.selectedFont == null ||
                         widget.selectedFont!.isEmpty;
                     return ListTile(
-                      title: const Text('System default'),
+                      title: Text(widget.defaultLabel),
                       subtitle: const Text('Use default typography'),
                       trailing: isSelected
                           ? Icon(
