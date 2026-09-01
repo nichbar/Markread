@@ -10,6 +10,7 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
   static const _keyFontSize = 'fontSize';
   static const _keyLineHeight = 'lineHeight';
   static const _keyTextAlignment = 'textAlignment';
+  static const _keyFontFamily = 'fontFamily';
 
   // Removed preference keys (cleared on load so stale values do not linger).
   static const _legacyKeyReaderLightTheme = 'readerLightTheme';
@@ -54,6 +55,7 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
         textAlignmentIndex < ReadingTextAlign.values.length
             ? ReadingTextAlign.values[textAlignmentIndex]
             : ReadingTextAlign.left;
+    final fontFamily = prefs.getString(_keyFontFamily);
 
     state = UserPreferences(
       appThemeMode: appThemeMode,
@@ -62,6 +64,7 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
       fontSize: fontSize,
       lineHeight: lineHeight,
       textAlignment: textAlignment,
+      fontFamily: fontFamily,
     );
   }
 
@@ -99,6 +102,18 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyTextAlignment, alignment.index);
     state = state.copyWith(textAlignment: alignment);
+  }
+
+  Future<void> setFontFamily(String? fontFamily) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (fontFamily == null || fontFamily.trim().isEmpty) {
+      await prefs.remove(_keyFontFamily);
+      state = state.copyWith(clearFontFamily: true);
+    } else {
+      final trimmed = fontFamily.trim();
+      await prefs.setString(_keyFontFamily, trimmed);
+      state = state.copyWith(fontFamily: trimmed);
+    }
   }
 }
 

@@ -65,6 +65,7 @@ GptMarkdownThemeData buildGithubGptMarkdownTheme({
   required BuildContext context,
   required Color textColor,
   required double effectiveFontSize,
+  String? fontFamily,
 }) {
   final tokens = GithubMarkdownTokens.of(context);
   final base = GptMarkdownThemeData(
@@ -77,6 +78,7 @@ GptMarkdownThemeData buildGithubGptMarkdownTheme({
       fontSize: effectiveFontSize * em,
       fontWeight: FontWeight.w600,
       height: 1.25,
+      fontFamily: fontFamily,
     );
   }
 

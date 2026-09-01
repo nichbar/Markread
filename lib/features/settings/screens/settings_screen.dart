@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/app_version.dart';
 import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/preferences_provider.dart';
+import '../../../core/providers/system_fonts_provider.dart';
 import '../../../core/services/update_check_service.dart';
 import '../../../core/widgets/app_layout_body.dart';
 
@@ -26,6 +27,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final prefs = ref.watch(preferencesProvider);
+    final systemFontsAsync = ref.watch(systemFontsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -86,6 +88,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onChanged: (v) => ref
                 .read(preferencesProvider.notifier)
                 .setMarkdownRenderMode(v),
+          ),
+          systemFontsAsync.when(
+            data: (fonts) {
+              if (fonts.isEmpty) return const SizedBox.shrink();
+              return ListTile(
+                title: const Text('Font family'),
+                subtitle: Text(prefs.fontFamily ?? 'System default'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showFontSelectionSheet(
+                  context,
+                  fonts: fonts,
+                  selectedFont: prefs.fontFamily,
+                ),
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (error, stackTrace) => const SizedBox.shrink(),
           ),
 
           // -- Font Size --
@@ -301,6 +320,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _showFontSelectionSheet(
+    BuildContext context, {
+    required List<String> fonts,
+    required String? selectedFont,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (bottomSheetContext) {
+        return _FontSelectionSheet(
+          fonts: fonts,
+          selectedFont: selectedFont,
+          onFontSelected: (font) {
+            ref.read(preferencesProvider.notifier).setFontFamily(font);
+          },
+        );
+      },
+    );
+  }
+
   String _displayMarkdownTheme(MarkdownTheme t) => switch (t) {
         MarkdownTheme.standard => 'Default',
         MarkdownTheme.github => 'GitHub',
@@ -355,6 +395,177 @@ class _SectionHeader extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
       ),
+    );
+  }
+}
+
+class _FontSelectionSheet extends StatefulWidget {
+  final List<String> fonts;
+  final String? selectedFont;
+  final ValueChanged<String?> onFontSelected;
+
+  const _FontSelectionSheet({
+    required this.fonts,
+    required this.selectedFont,
+    required this.onFontSelected,
+  });
+
+  @override
+  State<_FontSelectionSheet> createState() => _FontSelectionSheetState();
+}
+
+class _FontSelectionSheetState extends State<_FontSelectionSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredFonts = _searchQuery.isEmpty
+        ? widget.fonts
+        : widget.fonts
+            .where((f) => f.toLowerCase().contains(_searchQuery))
+            .toList();
+
+    final showSystemDefault = _searchQuery.isEmpty ||
+        'system default'.contains(_searchQuery);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) {
+        return Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 32,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Font Family',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            if (widget.fonts.length > 8)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search fonts...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () => _searchController.clear(),
+                          )
+                        : null,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            const Divider(),
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                itemCount: filteredFonts.length + (showSystemDefault ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (showSystemDefault && index == 0) {
+                    final isSelected = widget.selectedFont == null ||
+                        widget.selectedFont!.isEmpty;
+                    return ListTile(
+                      title: const Text('System default'),
+                      subtitle: const Text('Use default typography'),
+                      trailing: isSelected
+                          ? Icon(
+                              Icons.check,
+                              color: Theme.of(context).colorScheme.primary,
+                            )
+                          : null,
+                      onTap: () {
+                        widget.onFontSelected(null);
+                        Navigator.of(context).pop();
+                      },
+                    );
+                  }
+
+                  final fontIndex = showSystemDefault ? index - 1 : index;
+                  final font = filteredFonts[fontIndex];
+                  final isSelected = widget.selectedFont == font;
+
+                  return ListTile(
+                    title: Text(
+                      font,
+                      style: TextStyle(fontFamily: font),
+                    ),
+                    subtitle: Text(
+                      'Quick brown fox · 敏捷的棕狐',
+                      style: TextStyle(
+                        fontFamily: font,
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: isSelected
+                        ? Icon(
+                            Icons.check,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        : null,
+                    onTap: () {
+                      widget.onFontSelected(font);
+                      Navigator.of(context).pop();
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

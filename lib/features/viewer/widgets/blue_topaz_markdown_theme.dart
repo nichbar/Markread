@@ -126,6 +126,7 @@ GptMarkdownThemeData buildBlueTopazGptMarkdownTheme({
   required BuildContext context,
   required Color textColor,
   required double effectiveFontSize,
+  String? fontFamily,
 }) {
   final tokens = BlueTopazMarkdownTokens.of(context);
   final base = GptMarkdownThemeData(
@@ -138,6 +139,7 @@ GptMarkdownThemeData buildBlueTopazGptMarkdownTheme({
       fontSize: effectiveFontSize * em,
       fontWeight: FontWeight.w700,
       height: 1.25,
+      fontFamily: fontFamily,
     );
   }
 

@@ -21,6 +21,7 @@ class UserPreferences {
   final double fontSize;
   final double lineHeight;
   final ReadingTextAlign textAlignment;
+  final String? fontFamily;
 
   const UserPreferences({
     this.appThemeMode = AppThemeMode.system,
@@ -29,6 +30,7 @@ class UserPreferences {
     this.fontSize = 16.0,
     this.lineHeight = 1.6,
     this.textAlignment = ReadingTextAlign.left,
+    this.fontFamily,
   });
 
   UserPreferences copyWith({
@@ -38,6 +40,8 @@ class UserPreferences {
     double? fontSize,
     double? lineHeight,
     ReadingTextAlign? textAlignment,
+    String? fontFamily,
+    bool clearFontFamily = false,
   }) {
     return UserPreferences(
       appThemeMode: appThemeMode ?? this.appThemeMode,
@@ -46,6 +50,7 @@ class UserPreferences {
       fontSize: fontSize ?? this.fontSize,
       lineHeight: lineHeight ?? this.lineHeight,
       textAlignment: textAlignment ?? this.textAlignment,
+      fontFamily: clearFontFamily ? null : (fontFamily ?? this.fontFamily),
     );
   }
 }

@@ -1145,6 +1145,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
           style: TextStyle(
             fontSize: preferences.fontSize,
             height: preferences.lineHeight,
+            fontFamily: preferences.fontFamily,
           ),
           textAlign: textAlign,
         ),
@@ -1185,6 +1186,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       fontSize: preferences.fontSize,
       lineHeight: preferences.lineHeight,
       textAlignment: preferences.textAlignment,
+      fontFamily: preferences.fontFamily,
       isWordWrapEnabled: _isWordWrapEnabled,
       isCodeBlockWrapEnabled: _isCodeBlockWrapEnabled,
       scrollController: _scrollController,

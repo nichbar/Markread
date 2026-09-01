@@ -23,6 +23,7 @@ class MarkdownView extends StatefulWidget {
   final double fontSize;
   final double lineHeight;
   final ReadingTextAlign textAlignment;
+  final String? fontFamily;
   final bool isWordWrapEnabled;
   /// Soft-wrap long lines inside fenced ``` code blocks (when word wrap is on).
   final bool isCodeBlockWrapEnabled;
@@ -71,6 +72,7 @@ class MarkdownView extends StatefulWidget {
     this.fontSize = 16.0,
     this.lineHeight = 1.6,
     this.textAlignment = ReadingTextAlign.left,
+    this.fontFamily,
     this.isWordWrapEnabled = true,
     this.isCodeBlockWrapEnabled = true,
     this.scrollController,
@@ -157,6 +159,7 @@ class MarkdownViewState extends State<MarkdownView> {
         oldWidget.fontScale != widget.fontScale ||
         oldWidget.fontSize != widget.fontSize ||
         oldWidget.lineHeight != widget.lineHeight ||
+        oldWidget.fontFamily != widget.fontFamily ||
         oldWidget.isWordWrapEnabled != widget.isWordWrapEnabled ||
         oldWidget.isCodeBlockWrapEnabled != widget.isCodeBlockWrapEnabled ||
         oldWidget.textAlignment != widget.textAlignment ||
@@ -753,14 +756,16 @@ class MarkdownViewState extends State<MarkdownView> {
     // absolute size from config.style, and MdWidget only regenerates spans
     // when config.isSame is false.
     //
-    // Monospace theme also forces body fontFamily so spans match source-like
-    // chrome; other themes leave family unset (Material default).
+    // Monospace theme forces body fontFamily to monospace;
+    // other themes use widget.fontFamily (or Material default if null).
     final useMonospaceBody = widget.markdownTheme == MarkdownTheme.monospace;
+    final effectiveFontFamily =
+        useMonospaceBody ? 'monospace' : widget.fontFamily;
     final stableStyle = parentStyle.copyWith(
       color: null,
       fontSize: effectiveFontSize,
       height: widget.lineHeight,
-      fontFamily: useMonospaceBody ? 'monospace' : null,
+      fontFamily: effectiveFontFamily,
     );
 
     // Build a GptMarkdownTheme that injects the reader's text color
@@ -784,6 +789,7 @@ class MarkdownViewState extends State<MarkdownView> {
           context: context,
           textColor: resolvedTextColor,
           effectiveFontSize: effectiveFontSize,
+          fontFamily: effectiveFontFamily,
         );
         inlineCodeBuilder = githubInlineCode;
         fencedCodeBuilder = githubCodeBlock;
@@ -793,6 +799,7 @@ class MarkdownViewState extends State<MarkdownView> {
           context: context,
           textColor: resolvedTextColor,
           effectiveFontSize: effectiveFontSize,
+          fontFamily: effectiveFontFamily,
         );
         inlineCodeBuilder = blueTopazInlineCode;
         fencedCodeBuilder = blueTopazCodeBlock;
@@ -818,6 +825,7 @@ class MarkdownViewState extends State<MarkdownView> {
           return style.copyWith(
             color: resolvedColor,
             fontSize: baseSize * headingScale,
+            fontFamily: effectiveFontFamily,
           );
         }
 
@@ -849,7 +857,7 @@ class MarkdownViewState extends State<MarkdownView> {
             style: TextStyle(
               fontSize: effectiveFontSize,
               height: widget.lineHeight,
-              fontFamily: useMonospaceBody ? 'monospace' : null,
+              fontFamily: effectiveFontFamily,
             ),
             textAlign: textAlign,
             child: ListView.custom(
@@ -903,7 +911,7 @@ class MarkdownViewState extends State<MarkdownView> {
             style: TextStyle(
               fontSize: effectiveFontSize,
               height: widget.lineHeight,
-              fontFamily: useMonospaceBody ? 'monospace' : null,
+              fontFamily: effectiveFontFamily,
             ),
             textAlign: textAlign,
             child: SingleChildScrollView(
