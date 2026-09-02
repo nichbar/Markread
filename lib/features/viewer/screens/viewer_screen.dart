@@ -15,11 +15,13 @@ import '../../../core/widgets/app_layout_body.dart';
 import '../../../core/widgets/platform_benchmark_hud.dart';
 import '../providers/viewer_provider.dart';
 import '../widgets/markdown_view.dart';
-import '../widgets/reading_progress_badge.dart';
-import '../widgets/source_code_view.dart';
 import '../widgets/reader_theme.dart';
+import '../widgets/reading_progress_badge.dart';
 import '../widgets/search_bar.dart';
+import '../widgets/search_code_highlight.dart';
+import '../widgets/source_code_view.dart';
 import '../widgets/toc_sheet.dart';
+import '../widgets/zoomable_area.dart';
 
 class ViewerScreen extends ConsumerStatefulWidget {
   final String fileName;
@@ -1148,26 +1150,41 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
               ? TextAlign.justify
               : TextAlign.left;
 
+      final textSpan = buildQueryHighlightTextSpan(
+        text: state.fileContent,
+        query: state.searchQuery,
+        style: TextStyle(
+          fontSize: preferences.fontSize * _fontScale,
+          height: preferences.lineHeight,
+          fontFamily: preferences.fontFamily,
+          color: readerColors.content,
+        ),
+        highlightBg: searchHighlightBackground(Theme.of(context).brightness),
+      );
+
       final textWidget = SingleChildScrollView(
         controller: _scrollController,
         padding: const EdgeInsets.all(16),
-        child: Text(
-          state.fileContent,
-          style: TextStyle(
-            fontSize: preferences.fontSize,
-            height: preferences.lineHeight,
-            fontFamily: preferences.fontFamily,
-          ),
+        child: SelectableText.rich(
+          textSpan,
           textAlign: textAlign,
         ),
       );
 
       if (_isWordWrapEnabled) {
-        return textWidget;
+        return ZoomableArea(
+          scale: _fontScale,
+          onScaleChanged: (s) => setState(() => _fontScale = s),
+          child: textWidget,
+        );
       }
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(width: 800, child: textWidget),
+      return ZoomableArea(
+        scale: _fontScale,
+        onScaleChanged: (s) => setState(() => _fontScale = s),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(width: 800, child: textWidget),
+        ),
       );
     }
 
