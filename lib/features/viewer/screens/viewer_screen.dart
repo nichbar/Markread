@@ -1008,12 +1008,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
             ),
             PopupMenuItem(
               value: 'edit_source',
-              enabled: isReady && !state.isBinary,
+              enabled: canToggleSourceCodeMode,
               child: Row(
                 children: [
                   Icon(
                     Icons.edit_outlined,
-                    color: (isReady && !state.isBinary)
+                    color: canToggleSourceCodeMode
                         ? chromeColors.content
                         : chromeColors.muted,
                   ),
@@ -1021,7 +1021,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
                   Text(
                     'Edit source',
                     style: TextStyle(
-                      color: (isReady && !state.isBinary)
+                      color: canToggleSourceCodeMode
                           ? chromeColors.content
                           : chromeColors.muted,
                     ),

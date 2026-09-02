@@ -50,18 +50,18 @@ class _EditScreenState extends ConsumerState<EditScreen> {
   Future<bool> _showDiscardDialog() async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Discard unsaved changes?'),
         content: const Text(
           'You have unsaved changes. Are you sure you want to discard them?',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Keep editing'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Discard'),
           ),
         ],
@@ -70,54 +70,55 @@ class _EditScreenState extends ConsumerState<EditScreen> {
     return result ?? false;
   }
 
+  void _popOrGoHome(GoRouter router) {
+    if (router.canPop()) {
+      router.pop();
+    } else {
+      router.go('/');
+    }
+  }
+
   Future<void> _handleBack() async {
+    final router = GoRouter.of(context);
     if (!_isDirty) {
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/');
-      }
+      _popOrGoHome(router);
       return;
     }
 
     final discard = await _showDiscardDialog();
-    if (discard && mounted) {
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/');
-      }
+    if (!mounted) return;
+    if (discard) {
+      _popOrGoHome(router);
     }
   }
 
   Future<void> _handleSave() async {
     if (_isSaving) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final errorColor = Theme.of(context).colorScheme.error;
+    final router = GoRouter.of(context);
     setState(() {
       _isSaving = true;
     });
 
     try {
       await ref.read(viewerProvider.notifier).saveContent(_controller.text);
-      _isDirty = false;
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        _isDirty = false;
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Saved successfully'),
             duration: Duration(seconds: 2),
           ),
         );
-        if (context.canPop()) {
-          context.pop();
-        } else {
-          context.go('/');
-        }
+        _popOrGoHome(router);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Failed to save: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
+            backgroundColor: errorColor,
           ),
         );
       }
@@ -145,13 +146,11 @@ class _EditScreenState extends ConsumerState<EditScreen> {
       canPop: !_isDirty,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+        final router = GoRouter.of(context);
         final discard = await _showDiscardDialog();
-        if (discard && mounted) {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/');
-          }
+        if (!mounted) return;
+        if (discard) {
+          _popOrGoHome(router);
         }
       },
       child: Scaffold(
