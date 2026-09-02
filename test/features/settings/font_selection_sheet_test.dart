@@ -74,8 +74,15 @@ void main() {
       expect(find.text('Content Font'), findsOneWidget);
       expect(find.text('Noto Serif SC'), findsOneWidget);
       expect(find.text('MiSans'), findsOneWidget);
-      expect(find.text('中文'), findsNWidgets(2)); // Noto Serif SC and MiSans
-      expect(find.text('Monospace'), findsOneWidget); // Droid Sans Mono
+      expect(
+        find.descendant(of: find.byType(ListTile), matching: find.text('中文')),
+        findsNWidgets(2),
+      ); // Noto Serif SC and MiSans
+      expect(
+        find.descendant(
+            of: find.byType(ListTile), matching: find.text('Monospace')),
+        findsOneWidget,
+      ); // Droid Sans Mono
 
       // Select Noto Serif SC
       await tester.tap(find.widgetWithText(ListTile, 'Noto Serif SC'));
@@ -149,6 +156,96 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('System default'), findsOneWidget);
+    });
+
+    testWidgets('filter chips filter fonts and hide system default',
+        (tester) async {
+      await tester.pumpWidget(buildTestApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ListTile, 'Content font'));
+      await tester.pumpAndSettle();
+
+      // Verify all 3 chips exist and "All" is selected
+      final allChip = find.widgetWithText(ChoiceChip, 'All');
+      final chineseChip = find.widgetWithText(ChoiceChip, '中文');
+      final monoChip = find.widgetWithText(ChoiceChip, 'Monospace');
+
+      expect(allChip, findsOneWidget);
+      expect(chineseChip, findsOneWidget);
+      expect(monoChip, findsOneWidget);
+
+      final allChipWidget = tester.widget<ChoiceChip>(allChip);
+      expect(allChipWidget.selected, isTrue);
+
+      // Filter by 中文
+      await tester.tap(chineseChip);
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(ListTile, 'Noto Serif SC'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'MiSans'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Roboto'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Droid Sans Mono'), findsNothing);
+      expect(find.text('Use default typography'), findsNothing);
+
+      // Filter by Monospace
+      await tester.tap(monoChip);
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(ListTile, 'Droid Sans Mono'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Noto Serif SC'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'MiSans'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Roboto'), findsNothing);
+      expect(find.text('Use default typography'), findsNothing);
+
+      // Restore All
+      await tester.tap(allChip);
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(ListTile, 'Noto Serif SC'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'MiSans'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Droid Sans Mono'), findsOneWidget);
+      expect(find.text('Use default typography'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.widgetWithText(ListTile, 'Roboto'),
+        100,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.widgetWithText(ListTile, 'Roboto'), findsOneWidget);
+    });
+
+    testWidgets('combining filter chip with search query works',
+        (tester) async {
+      final manyFonts = List.generate(
+        15,
+        (i) => SystemFont(
+          name: 'CustomFont $i',
+          hasChinese: i % 2 == 0,
+          isMonospace: i % 3 == 0,
+        ),
+      );
+
+      await tester.pumpWidget(buildTestApp(fonts: manyFonts));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ListTile, 'Content font'));
+      await tester.pumpAndSettle();
+
+      // Select Chinese filter chip (even indices: 0, 2, 4, 6, 8, 10, 12, 14)
+      await tester.tap(find.widgetWithText(ChoiceChip, '中文'));
+      await tester.pumpAndSettle();
+
+      // Enter search query '1' (should match CustomFont 10, 12, 14 among Chinese fonts)
+      await tester.enterText(find.byType(TextField), '1');
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(ListTile, 'CustomFont 10'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'CustomFont 12'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'CustomFont 14'), findsOneWidget);
+      // CustomFont 1, 11, 13 are odd, so hasChinese == false -> should not be shown
+      expect(find.widgetWithText(ListTile, 'CustomFont 11'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'CustomFont 13'), findsNothing);
     });
   });
 }

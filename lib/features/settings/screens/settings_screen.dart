@@ -440,6 +440,12 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+enum _FontFilter {
+  all,
+  chinese,
+  monospace,
+}
+
 class _FontSelectionSheet extends StatefulWidget {
   final String title;
   final String defaultLabel;
@@ -464,6 +470,7 @@ class _FontSelectionSheet extends StatefulWidget {
 class _FontSelectionSheetState extends State<_FontSelectionSheet> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  _FontFilter _selectedFilter = _FontFilter.all;
 
   @override
   void initState() {
@@ -498,6 +505,18 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
 
   List<SystemFont> _getSortedAndFilteredFonts() {
     var list = widget.fonts;
+
+    switch (_selectedFilter) {
+      case _FontFilter.chinese:
+        list = list.where((f) => f.hasChinese).toList();
+        break;
+      case _FontFilter.monospace:
+        list = list.where((f) => f.isMonospace).toList();
+        break;
+      case _FontFilter.all:
+        break;
+    }
+
     if (_searchQuery.isNotEmpty) {
       list = list
           .where((f) => f.name.toLowerCase().contains(_searchQuery))
@@ -520,9 +539,10 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
   Widget build(BuildContext context) {
     final filteredFonts = _getSortedAndFilteredFonts();
 
-    final showSystemDefault = _searchQuery.isEmpty ||
-        widget.defaultLabel.toLowerCase().contains(_searchQuery) ||
-        'system default'.contains(_searchQuery);
+    final showSystemDefault = _selectedFilter == _FontFilter.all &&
+        (_searchQuery.isEmpty ||
+            widget.defaultLabel.toLowerCase().contains(_searchQuery) ||
+            'system default'.contains(_searchQuery));
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -584,6 +604,43 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                   ),
                 ),
               ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text('All'),
+                    selected: _selectedFilter == _FontFilter.all,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _selectedFilter = _FontFilter.all);
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('中文'),
+                    selected: _selectedFilter == _FontFilter.chinese,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _selectedFilter = _FontFilter.chinese);
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('Monospace'),
+                    selected: _selectedFilter == _FontFilter.monospace,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _selectedFilter = _FontFilter.monospace);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
             const Divider(),
             Expanded(
               child: ListView.builder(
