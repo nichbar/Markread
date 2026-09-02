@@ -1,7 +1,9 @@
 // test/features/viewer/raw_markdown_view_test.dart
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:markread/core/services/file_service.dart';
 import 'package:markread/core/theme/app_theme.dart';
 import 'package:markread/features/viewer/providers/viewer_provider.dart';
 import 'package:markread/features/viewer/screens/viewer_screen.dart';
@@ -19,13 +21,16 @@ class _MockViewerNotifier extends AsyncNotifier<ViewerState>
   }
 
   @override
-  void beginLoad({String? fileName}) {}
+  void beginLoad({String fileName = '', String? filePath}) {}
 
   @override
-  Future<void> completeLoad(dynamic file, dynamic fileService) async {}
+  Future<void> completeLoad(PlatformFile file, FileService fileService) async {}
 
   @override
-  Future<void> loadFile(dynamic file, dynamic fileService) async {}
+  Future<void> loadFile(PlatformFile file, FileService fileService) async {}
+
+  @override
+  Future<void> saveContent(String newContent, {FileService? fileService}) async {}
 
   @override
   void toggleViewMode() {}
