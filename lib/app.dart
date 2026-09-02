@@ -6,6 +6,7 @@ import 'core/models/user_preferences.dart';
 import 'core/providers/preferences_provider.dart';
 import 'core/providers/system_fonts_provider.dart';
 import 'core/theme/app_theme.dart';
+import 'features/editor/screens/edit_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'features/viewer/screens/viewer_screen.dart';
@@ -42,6 +43,13 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/edit',
+        builder: (context, state) {
+          final name = state.uri.queryParameters['name'] ?? 'Untitled';
+          return EditScreen(fileName: name);
+        },
       ),
     ],
   );

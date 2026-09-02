@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
+import 'file_io_helper.dart';
 
 class FileService {
   static const _markdownExtensions = {'.md', '.markdown', '.mdown', '.mkd', '.txt'};
@@ -70,6 +71,10 @@ class FileService {
   Future<String> readFileBytes(PlatformFile file) async {
     final bytes = await readFileAsBytes(file);
     return utf8.decode(bytes);
+  }
+
+  Future<void> writeFile(String path, String content) async {
+    await FileIoHelper.writeStringToFile(path, content);
   }
 
   bool isMarkdownFile(String fileName) {

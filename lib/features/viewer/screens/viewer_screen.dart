@@ -930,6 +930,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
                   });
                 }
                 break;
+              case 'edit_source':
+                context.push('/edit?name=${Uri.encodeComponent(titleName)}');
+                break;
               case 'bench_hud':
                 setState(() => _showBenchHud = !_showBenchHud);
                 break;
@@ -999,6 +1002,29 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
                   Switch(
                     value: isSourceCodeModeOn,
                     onChanged: null,
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'edit_source',
+              enabled: isReady && !state.isBinary,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.edit_outlined,
+                    color: (isReady && !state.isBinary)
+                        ? chromeColors.content
+                        : chromeColors.muted,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Edit source',
+                    style: TextStyle(
+                      color: (isReady && !state.isBinary)
+                          ? chromeColors.content
+                          : chromeColors.muted,
+                    ),
                   ),
                 ],
               ),
