@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/models/user_preferences.dart';
 import 'core/providers/preferences_provider.dart';
+import 'core/providers/system_fonts_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
@@ -51,6 +52,7 @@ class MarkreadApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(activeFontLoaderProvider);
     final prefs = ref.watch(preferencesProvider);
     final router = ref.watch(_routerProvider);
 

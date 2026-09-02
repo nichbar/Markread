@@ -1,13 +1,16 @@
 // lib/features/settings/screens/settings_screen.dart
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/app_version.dart';
+import '../../../core/models/system_font.dart';
 import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/preferences_provider.dart';
 import '../../../core/providers/system_fonts_provider.dart';
+import '../../../core/services/dynamic_font_loader.dart';
 import '../../../core/services/update_check_service.dart';
 import '../../../core/widgets/app_layout_body.dart';
 
@@ -105,6 +108,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       defaultLabel: 'System default',
                       fonts: fonts,
                       selectedFont: prefs.fontFamily,
+                      isCodeFont: false,
                       onFontSelected: (font) {
                         ref
                             .read(preferencesProvider.notifier)
@@ -124,6 +128,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       defaultLabel: 'System default (Monospace)',
                       fonts: fonts,
                       selectedFont: prefs.codeFontFamily,
+                      isCodeFont: true,
                       onFontSelected: (font) {
                         ref
                             .read(preferencesProvider.notifier)
@@ -355,8 +360,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     BuildContext context, {
     required String title,
     required String defaultLabel,
-    required List<String> fonts,
+    required List<SystemFont> fonts,
     required String? selectedFont,
+    bool isCodeFont = false,
     required ValueChanged<String?> onFontSelected,
   }) async {
     await showModalBottomSheet<void>(
@@ -369,6 +375,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           defaultLabel: defaultLabel,
           fonts: fonts,
           selectedFont: selectedFont,
+          isCodeFont: isCodeFont,
           onFontSelected: onFontSelected,
         );
       },
@@ -436,8 +443,9 @@ class _SectionHeader extends StatelessWidget {
 class _FontSelectionSheet extends StatefulWidget {
   final String title;
   final String defaultLabel;
-  final List<String> fonts;
+  final List<SystemFont> fonts;
   final String? selectedFont;
+  final bool isCodeFont;
   final ValueChanged<String?> onFontSelected;
 
   const _FontSelectionSheet({
@@ -445,6 +453,7 @@ class _FontSelectionSheet extends StatefulWidget {
     this.defaultLabel = 'System default',
     required this.fonts,
     required this.selectedFont,
+    this.isCodeFont = false,
     required this.onFontSelected,
   });
 
@@ -464,6 +473,21 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
         _searchQuery = _searchController.text.trim().toLowerCase();
       });
     });
+
+    // Asynchronously preload font files for live preview rendering
+    _preloadFonts();
+  }
+
+  void _preloadFonts() {
+    for (final font in widget.fonts) {
+      if (font.path != null && !DynamicFontLoader.isFontLoaded(font.name)) {
+        DynamicFontLoader.loadFont(font.name, font.path).then((loaded) {
+          if (loaded && mounted) {
+            setState(() {});
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -472,13 +496,29 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
     super.dispose();
   }
 
+  List<SystemFont> _getSortedAndFilteredFonts() {
+    var list = widget.fonts;
+    if (_searchQuery.isNotEmpty) {
+      list = list
+          .where((f) => f.name.toLowerCase().contains(_searchQuery))
+          .toList();
+    }
+
+    if (widget.isCodeFont) {
+      final mono = list.where((f) => f.isMonospace).toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      final nonMono = list.where((f) => !f.isMonospace).toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      return [...mono, ...nonMono];
+    } else {
+      return list.toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filteredFonts = _searchQuery.isEmpty
-        ? widget.fonts
-        : widget.fonts
-            .where((f) => f.toLowerCase().contains(_searchQuery))
-            .toList();
+    final filteredFonts = _getSortedAndFilteredFonts();
 
     final showSystemDefault = _searchQuery.isEmpty ||
         widget.defaultLabel.toLowerCase().contains(_searchQuery) ||
@@ -571,17 +611,74 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
 
                   final fontIndex = showSystemDefault ? index - 1 : index;
                   final font = filteredFonts[fontIndex];
-                  final isSelected = widget.selectedFont == font;
+                  final isSelected = widget.selectedFont == font.name;
 
                   return ListTile(
-                    title: Text(
-                      font,
-                      style: TextStyle(fontFamily: font),
+                    title: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            font.name,
+                            style: TextStyle(fontFamily: font.name),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (font.hasChinese) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '中文',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (font.isMonospace) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Monospace',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSecondaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     subtitle: Text(
                       'Quick brown fox · 敏捷的棕狐',
                       style: TextStyle(
-                        fontFamily: font,
+                        fontFamily: font.name,
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -595,7 +692,10 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                           )
                         : null,
                     onTap: () {
-                      widget.onFontSelected(font);
+                      if (font.path != null) {
+                        unawaited(DynamicFontLoader.loadFont(font.name, font.path));
+                      }
+                      widget.onFontSelected(font.name);
                       Navigator.of(context).pop();
                     },
                   );
