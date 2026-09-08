@@ -452,6 +452,8 @@ class CompiledApp {
       _1338: (module,f) => finalizeWrapper(f, function(x0) { return module.exports._1338(f,arguments.length,x0) }),
       _1339: (x0,x1) => x0.removeChild(x1),
       _1340: x0 => x0.click(),
+      _1341: x0 => new Blob(x0),
+      _1342: x0 => globalThis.URL.revokeObjectURL(x0),
       _1347: Date.now,
       _1349: s => new Date(s * 1000).getTimezoneOffset() * 60,
       _1350: s => {
@@ -469,6 +471,11 @@ class CompiledApp {
           return globalThis.location.href;
         }
         return null;
+      },
+      _1355: () => {
+        return typeof process != "undefined" &&
+               Object.prototype.toString.call(process) == "[object process]" &&
+               process.platform == "win32"
       },
       _1356: () => new WeakMap(),
       _1357: (map, o) => map.get(o),
@@ -832,6 +839,9 @@ class CompiledApp {
       _1809: x0 => x0.response,
       _1869: (x0,x1) => { x0.draggable = x1 },
       _1885: x0 => x0.style,
+      _2242: (x0,x1) => { x0.target = x1 },
+      _2244: (x0,x1) => { x0.download = x1 },
+      _2269: (x0,x1) => { x0.href = x1 },
       _2814: (x0,x1) => { x0.accept = x1 },
       _2828: x0 => x0.files,
       _2854: (x0,x1) => { x0.multiple = x1 },
