@@ -18,6 +18,7 @@ class HistoryNotifier extends AsyncNotifier<List<HistoryItem>> {
   Future<void> recordFileOpen({
     required String fileName,
     String? filePath,
+    String? fileUri,
     int byteLength = 0,
     int charOffset = 0,
   }) async {
@@ -28,6 +29,7 @@ class HistoryNotifier extends AsyncNotifier<List<HistoryItem>> {
     final item = HistoryItem(
       fileName: fileName,
       filePath: filePath,
+      fileUri: fileUri,
       byteLength: byteLength,
       lastOpenedMs: now,
       charOffset: charOffset,

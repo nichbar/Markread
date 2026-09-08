@@ -3,6 +3,7 @@
 class HistoryItem {
   final String fileName;
   final String? filePath;
+  final String? fileUri;
   final int byteLength;
   final int lastOpenedMs;
   final int charOffset;
@@ -10,6 +11,7 @@ class HistoryItem {
   const HistoryItem({
     required this.fileName,
     this.filePath,
+    this.fileUri,
     this.byteLength = 0,
     required this.lastOpenedMs,
     this.charOffset = 0,
@@ -65,6 +67,7 @@ class HistoryItem {
   Map<String, dynamic> toJson() => {
         'fileName': fileName,
         'filePath': filePath,
+        'fileUri': fileUri,
         'byteLength': byteLength,
         'lastOpenedMs': lastOpenedMs,
         'charOffset': charOffset,
@@ -74,6 +77,7 @@ class HistoryItem {
     return HistoryItem(
       fileName: json['fileName'] as String? ?? '',
       filePath: json['filePath'] as String?,
+      fileUri: json['fileUri'] as String?,
       byteLength: (json['byteLength'] as num?)?.toInt() ?? 0,
       lastOpenedMs: (json['lastOpenedMs'] as num?)?.toInt() ?? 0,
       charOffset: (json['charOffset'] as num?)?.toInt() ?? 0,
@@ -84,6 +88,8 @@ class HistoryItem {
     String? fileName,
     String? filePath,
     bool clearFilePath = false,
+    String? fileUri,
+    bool clearFileUri = false,
     int? byteLength,
     int? lastOpenedMs,
     int? charOffset,
@@ -91,6 +97,7 @@ class HistoryItem {
     return HistoryItem(
       fileName: fileName ?? this.fileName,
       filePath: clearFilePath ? null : (filePath ?? this.filePath),
+      fileUri: clearFileUri ? null : (fileUri ?? this.fileUri),
       byteLength: byteLength ?? this.byteLength,
       lastOpenedMs: lastOpenedMs ?? this.lastOpenedMs,
       charOffset: charOffset ?? this.charOffset,
@@ -104,6 +111,7 @@ class HistoryItem {
           runtimeType == other.runtimeType &&
           fileName == other.fileName &&
           filePath == other.filePath &&
+          fileUri == other.fileUri &&
           byteLength == other.byteLength &&
           lastOpenedMs == other.lastOpenedMs &&
           charOffset == other.charOffset;
@@ -112,6 +120,7 @@ class HistoryItem {
   int get hashCode =>
       fileName.hashCode ^
       filePath.hashCode ^
+      fileUri.hashCode ^
       byteLength.hashCode ^
       lastOpenedMs.hashCode ^
       charOffset.hashCode;

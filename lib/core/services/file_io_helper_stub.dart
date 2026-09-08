@@ -8,4 +8,8 @@ class FileIoHelper {
   static Future<void> writeStringToFile(String path, String content) async {
     throw UnsupportedError('File writing is not supported on this platform');
   }
+
+  static Future<void> writeBytesToFile(String path, List<int> bytes) async {
+    throw UnsupportedError('File writing is not supported on this platform');
+  }
 }

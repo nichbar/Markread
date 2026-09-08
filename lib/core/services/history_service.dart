@@ -52,6 +52,12 @@ class HistoryService {
     final items = (await loadHistory()).toList();
 
     final existingIndex = items.indexWhere((existing) {
+      if (item.fileUri != null &&
+          item.fileUri!.isNotEmpty &&
+          existing.fileUri != null &&
+          existing.fileUri!.isNotEmpty) {
+        return existing.fileUri == item.fileUri;
+      }
       if (item.filePath != null &&
           item.filePath!.isNotEmpty &&
           existing.filePath != null &&
@@ -66,6 +72,7 @@ class HistoryService {
       final updated = existing.copyWith(
         fileName: item.fileName,
         filePath: item.filePath ?? existing.filePath,
+        fileUri: item.fileUri ?? existing.fileUri,
         byteLength: item.byteLength > 0 ? item.byteLength : existing.byteLength,
         lastOpenedMs: item.lastOpenedMs,
         charOffset: item.charOffset > 0 ? item.charOffset : existing.charOffset,
@@ -116,6 +123,12 @@ class HistoryService {
     final items = (await loadHistory()).toList();
 
     items.removeWhere((existing) {
+      if (item.fileUri != null &&
+          item.fileUri!.isNotEmpty &&
+          existing.fileUri != null &&
+          existing.fileUri!.isNotEmpty) {
+        return existing.fileUri == item.fileUri;
+      }
       if (item.filePath != null &&
           item.filePath!.isNotEmpty &&
           existing.filePath != null &&

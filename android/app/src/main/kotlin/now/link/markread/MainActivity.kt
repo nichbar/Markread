@@ -13,7 +13,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.util.concurrent.Executors
 
-data class PendingFile(val path: String, val name: String)
+data class PendingFile(val path: String, val name: String, val uri: String? = null)
 
 data class DiscoveredFont(
     val name: String,
@@ -52,16 +52,100 @@ class MainActivity : FlutterActivity() {
 
         filesChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_FILES)
         filesChannel?.setMethodCallHandler { call, result ->
-            if (call.method == "getPendingFile") {
-                val file = pendingFile
-                if (file != null) {
-                    pendingFile = null
-                    result.success(mapOf("path" to file.path, "name" to file.name))
-                } else {
-                    result.success(null)
+            when (call.method) {
+                "getPendingFile" -> {
+                    val file = pendingFile
+                    if (file != null) {
+                        pendingFile = null
+                        result.success(mapOf("path" to file.path, "name" to file.name, "uri" to file.uri))
+                    } else {
+                        result.success(null)
+                    }
                 }
-            } else {
-                result.notImplemented()
+                "saveContentToUri" -> {
+                    val uriStr = call.argument<String>("uri")
+                    val content = call.argument<String>("content")
+                    val bytes = call.argument<ByteArray>("bytes")
+                    if (uriStr == null) {
+                        result.error("INVALID_ARGUMENTS", "URI cannot be null", null)
+                        return@setMethodCallHandler
+                    }
+                    executor.execute {
+                        try {
+                            val uri = android.net.Uri.parse(uriStr)
+                            val dataToWrite = bytes ?: content?.toByteArray(Charsets.UTF_8) ?: ByteArray(0)
+                            val outStream = contentResolver.openOutputStream(uri, "wt")
+                                ?: throw java.io.IOException("Unable to open output stream for URI: $uriStr")
+                            outStream.use {
+                                it.write(dataToWrite)
+                                it.flush()
+                            }
+                            mainHandler.post {
+                                result.success(true)
+                            }
+                        } catch (e: SecurityException) {
+                            mainHandler.post {
+                                result.error("PERMISSION_DENIED", e.localizedMessage, null)
+                            }
+                        } catch (e: Exception) {
+                            mainHandler.post {
+                                result.error("WRITE_ERROR", e.localizedMessage, null)
+                            }
+                        }
+                    }
+                }
+                "readFileFromUri" -> {
+                    val uriStr = call.argument<String>("uri")
+                    if (uriStr == null) {
+                        result.error("INVALID_ARGUMENTS", "URI cannot be null", null)
+                        return@setMethodCallHandler
+                    }
+                    executor.execute {
+                        try {
+                            val uri = android.net.Uri.parse(uriStr)
+                            val inputStream = contentResolver.openInputStream(uri)
+                                ?: throw java.io.IOException("Unable to open input stream for URI: $uriStr")
+                            val bytes = inputStream.use { it.readBytes() }
+                            mainHandler.post {
+                                result.success(bytes)
+                            }
+                        } catch (e: SecurityException) {
+                            mainHandler.post {
+                                result.error("PERMISSION_DENIED", e.localizedMessage, null)
+                            }
+                        } catch (e: Exception) {
+                            mainHandler.post {
+                                result.error("READ_ERROR", e.localizedMessage, null)
+                            }
+                        }
+                    }
+                }
+                "takePersistableUriPermission" -> {
+                    val uriStr = call.argument<String>("uri")
+                    if (uriStr == null) {
+                        result.error("INVALID_ARGUMENTS", "URI cannot be null", null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        val uri = android.net.Uri.parse(uriStr)
+                        val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                        contentResolver.takePersistableUriPermission(uri, takeFlags)
+                        result.success(true)
+                    } catch (e: SecurityException) {
+                        try {
+                            val uri = android.net.Uri.parse(uriStr)
+                            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            result.success(true)
+                        } catch (ignored: Exception) {
+                            result.success(false)
+                        }
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
+                else -> {
+                    result.notImplemented()
+                }
             }
         }
 
@@ -430,8 +514,15 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
-        if (intent.action != Intent.ACTION_VIEW) return
+        if (intent.action != Intent.ACTION_VIEW && intent.action != Intent.ACTION_EDIT) return
         val uri = intent.data ?: return
+
+        val flags = intent.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        if (flags != 0) {
+            try {
+                contentResolver.takePersistableUriPermission(uri, flags)
+            } catch (_: Exception) {}
+        }
 
         val name = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
@@ -445,7 +536,7 @@ class MainActivity : FlutterActivity() {
             tempFile.outputStream().use { output -> input.copyTo(output) }
         }
 
-        val file = PendingFile(tempFile.absolutePath, name)
+        val file = PendingFile(tempFile.absolutePath, name, uri.toString())
         pendingFile = file
 
         // Clear intent data so Flutter doesn't treat the content:// URI as a deep link
@@ -454,7 +545,8 @@ class MainActivity : FlutterActivity() {
         // For warm start: push to Flutter via MethodChannel
         filesChannel?.invokeMethod("onFileReceived", mapOf(
             "path" to file.path,
-            "name" to file.name
+            "name" to file.name,
+            "uri" to file.uri
         ))
     }
 }

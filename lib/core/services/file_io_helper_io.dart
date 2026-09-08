@@ -9,4 +9,9 @@ class FileIoHelper {
     final file = File(path);
     await file.writeAsString(content, flush: true);
   }
+
+  static Future<void> writeBytesToFile(String path, List<int> bytes) async {
+    final file = File(path);
+    await file.writeAsBytes(bytes, flush: true);
+  }
 }

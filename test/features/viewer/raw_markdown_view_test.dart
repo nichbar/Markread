@@ -21,16 +21,28 @@ class _MockViewerNotifier extends AsyncNotifier<ViewerState>
   }
 
   @override
-  void beginLoad({String fileName = '', String? filePath}) {}
+  void beginLoad({String fileName = '', String? filePath, String? fileUri}) {}
 
   @override
-  Future<void> completeLoad(PlatformFile file, FileService fileService) async {}
+  Future<void> completeLoad(
+    PlatformFile file,
+    FileService fileService, {
+    String? fileUri,
+  }) async {}
 
   @override
   Future<void> loadFile(PlatformFile file, FileService fileService) async {}
 
   @override
   Future<void> saveContent(String newContent, {FileService? fileService}) async {}
+
+  @override
+  Future<void> updateSavedAs({
+    required String newFileName,
+    String? newFilePath,
+    String? newFileUri,
+    required String newContent,
+  }) async {}
 
   @override
   void toggleViewMode() {}

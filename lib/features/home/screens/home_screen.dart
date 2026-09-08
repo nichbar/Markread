@@ -62,27 +62,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       name: intentFile.name,
       path: intentFile.path,
       size: 0,
+      identifier: intentFile.uri,
     );
+
+    if (intentFile.uri != null) {
+      unawaited(fileService.takePersistableUriPermission(intentFile.uri!));
+    }
 
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       unawaited(
         ref.read(historyProvider.notifier).recordFileOpen(
               fileName: intentFile.name,
               filePath: intentFile.path,
+              fileUri: intentFile.uri,
               byteLength: 0,
             ),
       );
     }
 
     final notifier = ref.read(viewerProvider.notifier);
-    notifier.beginLoad(fileName: intentFile.name, filePath: intentFile.path);
+    notifier.beginLoad(
+      fileName: intentFile.name,
+      filePath: intentFile.path,
+      fileUri: intentFile.uri,
+    );
     if (mounted) {
       // ACTION_VIEW / external share: replace stack so system back leaves the app.
       context.go('/viewer?name=${Uri.encodeComponent(intentFile.name)}');
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifier.completeLoad(file, fileService);
+      notifier.completeLoad(file, fileService, fileUri: intentFile.uri);
     });
   }
 
@@ -277,23 +287,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final file = await fileService.pickFile();
     if (file == null || !mounted) return;
 
+    if (file.identifier != null) {
+      unawaited(fileService.takePersistableUriPermission(file.identifier!));
+    }
+
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       unawaited(
         ref.read(historyProvider.notifier).recordFileOpen(
               fileName: file.name,
               filePath: file.path,
+              fileUri: file.identifier,
               byteLength: file.size,
             ),
       );
     }
 
     final notifier = ref.read(viewerProvider.notifier);
-    notifier.beginLoad(fileName: file.name, filePath: file.path);
+    notifier.beginLoad(
+      fileName: file.name,
+      filePath: file.path,
+      fileUri: file.identifier,
+    );
     // push keeps Home under the viewer so system/app-bar back works.
     context.push('/viewer?name=${Uri.encodeComponent(file.name)}');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifier.completeLoad(file, fileService);
+      notifier.completeLoad(file, fileService, fileUri: file.identifier);
     });
   }
 
@@ -303,11 +322,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       name: item.fileName,
       path: item.filePath,
       size: item.byteLength,
+      identifier: item.fileUri,
     );
 
-    // Verify file accessibility before attempting navigation
+    // Verify file accessibility and read bytes before attempting navigation.
+    // If item.fileUri is present, readFileAsBytes will load fresh content directly
+    // from the original SAF document URI and refresh the local cache.
+    Uint8List bytes;
     try {
-      await fileService.readFileAsBytes(file);
+      bytes = await fileService.readFileAsBytes(file);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -329,21 +352,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (!mounted) return;
 
+    final updatedFile = PlatformFile(
+      name: item.fileName,
+      path: item.filePath,
+      size: bytes.length,
+      bytes: bytes,
+      identifier: item.fileUri,
+    );
+
     unawaited(
       ref.read(historyProvider.notifier).recordFileOpen(
             fileName: item.fileName,
             filePath: item.filePath,
-            byteLength: item.byteLength,
+            fileUri: item.fileUri,
+            byteLength: bytes.length,
             charOffset: item.charOffset,
           ),
     );
 
     final notifier = ref.read(viewerProvider.notifier);
-    notifier.beginLoad(fileName: item.fileName, filePath: item.filePath);
+    notifier.beginLoad(
+      fileName: item.fileName,
+      filePath: item.filePath,
+      fileUri: item.fileUri,
+    );
     context.push('/viewer?name=${Uri.encodeComponent(item.fileName)}');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifier.completeLoad(file, fileService);
+      notifier.completeLoad(updatedFile, fileService, fileUri: item.fileUri);
     });
   }
 

@@ -4,8 +4,13 @@ import 'package:flutter/services.dart';
 class IntentFile {
   final String path;
   final String name;
+  final String? uri;
 
-  const IntentFile({required this.path, required this.name});
+  const IntentFile({
+    required this.path,
+    required this.name,
+    this.uri,
+  });
 }
 
 class IntentFileService {
@@ -22,6 +27,7 @@ class IntentFileService {
         _fileController.add(IntentFile(
           path: args['path'] as String,
           name: args['name'] as String,
+          uri: args['uri'] as String?,
         ));
       }
     });
@@ -34,6 +40,7 @@ class IntentFileService {
     return IntentFile(
       path: map['path'] as String,
       name: map['name'] as String,
+      uri: map['uri'] as String?,
     );
   }
 

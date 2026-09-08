@@ -31,6 +31,7 @@ class HeadingItem {
 class ViewerState {
   final String fileName;
   final String? filePath;
+  final String? fileUri;
   final String fileContent;
   final int fileByteLength;
   final ViewerStatus status;
@@ -52,6 +53,7 @@ class ViewerState {
   const ViewerState({
     this.fileName = '',
     this.filePath,
+    this.fileUri,
     this.fileContent = '',
     this.fileByteLength = 0,
     this.status = ViewerStatus.initial,
@@ -74,6 +76,8 @@ class ViewerState {
     String? fileName,
     String? filePath,
     bool clearFilePath = false,
+    String? fileUri,
+    bool clearFileUri = false,
     String? fileContent,
     int? fileByteLength,
     ViewerStatus? status,
@@ -94,6 +98,7 @@ class ViewerState {
     return ViewerState(
       fileName: fileName ?? this.fileName,
       filePath: clearFilePath ? null : (filePath ?? this.filePath),
+      fileUri: clearFileUri ? null : (fileUri ?? this.fileUri),
       fileContent: fileContent ?? this.fileContent,
       fileByteLength: fileByteLength ?? this.fileByteLength,
       status: status ?? this.status,
@@ -124,21 +129,28 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
 
   /// Enter loading with a stable [AsyncData] so the viewer can render
   /// themed chrome and a loading body (not a pure [AsyncLoading] blank).
-  void beginLoad({String fileName = '', String? filePath}) {
+  void beginLoad({String fileName = '', String? filePath, String? fileUri}) {
     state = AsyncData(ViewerState(
       fileName: fileName,
       filePath: filePath,
+      fileUri: fileUri,
       status: ViewerStatus.loading,
     ));
   }
 
-  Future<void> completeLoad(PlatformFile file, FileService fileService) async {
+  Future<void> completeLoad(
+    PlatformFile file,
+    FileService fileService, {
+    String? fileUri,
+  }) async {
+    final effectiveUri = fileUri ?? file.identifier;
     // If caller forgot beginLoad, still enter loading (safe).
     final current = state.value;
     if (current == null || current.status != ViewerStatus.loading) {
       state = AsyncData(ViewerState(
         fileName: file.name,
         filePath: file.path,
+        fileUri: effectiveUri,
         status: ViewerStatus.loading,
       ));
     }
@@ -154,12 +166,14 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
           processed,
           byteLength: bytes.length,
           filePath: file.path,
+          fileUri: effectiveUri,
         ),
       );
     } catch (e) {
       state = AsyncData(ViewerState(
         fileName: file.name,
         filePath: file.path,
+        fileUri: effectiveUri,
         status: ViewerStatus.error,
         errorMessage: 'Could not read file: ${e.toString()}',
       ));
@@ -170,10 +184,12 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
     ProcessedFileContent p, {
     required int byteLength,
     String? filePath,
+    String? fileUri,
   }) {
     return ViewerState(
       fileName: p.fileName,
       filePath: filePath,
+      fileUri: fileUri,
       fileContent: p.fileContent,
       fileByteLength: byteLength,
       status: ViewerStatus.loaded,
@@ -197,10 +213,13 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
 
     final service = fileService ?? FileService();
     final filePath = current.filePath;
+    final fileUri = current.fileUri;
 
-    if (filePath != null && filePath.isNotEmpty) {
-      await service.writeFile(filePath, newContent);
-    }
+    await service.saveFile(
+      path: filePath,
+      uri: fileUri,
+      content: newContent,
+    );
 
     final bytes = Uint8List.fromList(utf8.encode(newContent));
     final processed = await _process(current.fileName, bytes);
@@ -210,6 +229,7 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
         processed,
         byteLength: bytes.length,
         filePath: filePath,
+        fileUri: fileUri,
       ).copyWith(
         viewMode: processed.viewMode == ProcessedViewMode.raw
             ? ViewMode.raw
@@ -217,11 +237,45 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
       ),
     );
 
-    if (filePath != null && filePath.isNotEmpty) {
+    if ((filePath != null && filePath.isNotEmpty) ||
+        (fileUri != null && fileUri.isNotEmpty)) {
       unawaited(
         ref.read(historyProvider.notifier).recordFileOpen(
               fileName: current.fileName,
               filePath: filePath,
+              fileUri: fileUri,
+              byteLength: bytes.length,
+            ),
+      );
+    }
+  }
+
+  /// Updates state after a "Save As" operation with new location and content
+  Future<void> updateSavedAs({
+    required String newFileName,
+    String? newFilePath,
+    String? newFileUri,
+    required String newContent,
+  }) async {
+    final bytes = Uint8List.fromList(utf8.encode(newContent));
+    final processed = await _process(newFileName, bytes);
+
+    state = AsyncData(
+      _viewerStateFromProcessed(
+        processed,
+        byteLength: bytes.length,
+        filePath: newFilePath,
+        fileUri: newFileUri,
+      ),
+    );
+
+    if ((newFilePath != null && newFilePath.isNotEmpty) ||
+        (newFileUri != null && newFileUri.isNotEmpty)) {
+      unawaited(
+        ref.read(historyProvider.notifier).recordFileOpen(
+              fileName: newFileName,
+              filePath: newFilePath,
+              fileUri: newFileUri,
               byteLength: bytes.length,
             ),
       );

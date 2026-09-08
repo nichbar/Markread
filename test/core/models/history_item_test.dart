@@ -17,6 +17,28 @@ void main() {
       expect(item.charOffset, 0);
     });
 
+    test('toJson and fromJson round-trip with fileUri', () {
+      const item = HistoryItem(
+        fileName: 'notes.md',
+        filePath: '/storage/emulated/0/Documents/notes.md',
+        fileUri: 'content://com.android.providers.media.documents/document/1234',
+        byteLength: 2048,
+        lastOpenedMs: 1710000000000,
+        charOffset: 512,
+      );
+
+      final json = item.toJson();
+      final restored = HistoryItem.fromJson(json);
+
+      expect(restored.fileName, item.fileName);
+      expect(restored.filePath, item.filePath);
+      expect(restored.fileUri, item.fileUri);
+      expect(restored.byteLength, item.byteLength);
+      expect(restored.lastOpenedMs, item.lastOpenedMs);
+      expect(restored.charOffset, item.charOffset);
+      expect(restored, equals(item));
+    });
+
     test('toJson and fromJson round-trip', () {
       const item = HistoryItem(
         fileName: 'notes.md',
