@@ -48,7 +48,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: const Text('Settings'),
       ),
       body: AppLayoutBody(
-        child: ListView(
+        child: ListTileTheme.merge(
+          titleTextStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+          subtitleTextStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+          child: ListView(
         children: [
           // -- Appearance --
           _SectionHeader(title: 'Appearance'),
@@ -143,7 +151,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             error: (error, stackTrace) => const SizedBox.shrink(),
           ),
           SwitchListTile(
-            title: const Text('Toggle checkboxes in reader'),
+            title: const Text(
+              'Toggle checkboxes in reader',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
             subtitle: const Text(
               'Allow checking or unchecking task list items while reading and save to file',
             ),
@@ -183,7 +194,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Center(
             child: Text(
               '${prefs.fontSize.round()} sp',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
 
@@ -193,7 +207,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                const Text('1.2'),
+                Text(
+                  '1.2',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 Expanded(
                   child: Slider(
                     value: prefs.lineHeight,
@@ -208,14 +228,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     },
                   ),
                 ),
-                const Text('2.0'),
+                Text(
+                  '2.0',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
           Center(
             child: Text(
               '${prefs.lineHeight.toStringAsFixed(1)}x',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
 
@@ -244,9 +274,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // -- About --
           _SectionHeader(title: 'About'),
-          const ListTile(
-            title: Text('Markread'),
-            subtitle: Text('A minimal, read-only Markdown reader.'),
+          ListTile(
+            title: Text(
+              'Markread',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            subtitle: const Text('A minimal, read-only Markdown reader.'),
           ),
           ListTile(
             title: const Text('Version'),
@@ -270,6 +305,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 32),
         ],
+      ),
       ),
       ),
     );
@@ -400,7 +436,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       };
 
   String _displayMarkdownRenderMode(MarkdownRenderMode m) => switch (m) {
-        MarkdownRenderMode.auto => 'Auto (≥100KB performance)',
+        MarkdownRenderMode.auto => 'Auto',
         MarkdownRenderMode.performance => 'Performance',
         MarkdownRenderMode.standard => 'Standard',
       };
@@ -421,7 +457,10 @@ Widget _buildDropdownTile<T extends Enum>({
       items: items
           .map((item) => DropdownMenuItem(
                 value: item,
-                child: Text(display(item)),
+                child: Text(
+                  display(item),
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
               ))
           .toList(),
       onChanged: (v) {
@@ -443,7 +482,7 @@ class _SectionHeader extends StatelessWidget {
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
       ),
     );
@@ -663,7 +702,10 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                     final isSelected = widget.selectedFont == null ||
                         widget.selectedFont!.isEmpty;
                     return ListTile(
-                      title: Text(widget.defaultLabel),
+                      title: Text(
+                        widget.defaultLabel,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
                       subtitle: const Text('Use default typography'),
                       trailing: isSelected
                           ? Icon(
@@ -688,7 +730,10 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                         Flexible(
                           child: Text(
                             font.name,
-                            style: TextStyle(fontFamily: font.name),
+                            style: TextStyle(
+                              fontFamily: font.name,
+                              fontWeight: FontWeight.w500,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -748,7 +793,7 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                       'Quick brown fox · 敏捷的棕狐',
                       style: TextStyle(
                         fontFamily: font.name,
-                        fontSize: 12,
+                        fontSize: 13.5,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       maxLines: 1,
