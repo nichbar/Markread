@@ -1,6 +1,8 @@
 package now.link.markread
 
+import android.app.ActivityManager
 import android.content.Intent
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
@@ -524,29 +526,56 @@ class MainActivity : FlutterActivity() {
             } catch (_: Exception) {}
         }
 
-        val name = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-            if (cursor.moveToFirst()) {
-                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (idx >= 0) cursor.getString(idx) else "Untitled"
-            } else "Untitled"
-        } ?: "Untitled"
-
-        val tempFile = File(cacheDir, name)
-        contentResolver.openInputStream(uri)?.use { input ->
-            tempFile.outputStream().use { output -> input.copyTo(output) }
+        val name = try {
+            if (uri.scheme == "file") {
+                uri.lastPathSegment ?: "Untitled"
+            } else {
+                contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (idx >= 0) cursor.getString(idx) else null
+                    } else null
+                } ?: uri.lastPathSegment ?: "Untitled"
+            }
+        } catch (_: Exception) {
+            uri.lastPathSegment ?: "Untitled"
         }
 
-        val file = PendingFile(tempFile.absolutePath, name, uri.toString())
-        pendingFile = file
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                setTaskDescription(
+                    ActivityManager.TaskDescription.Builder()
+                        .setLabel(name)
+                        .build()
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                setTaskDescription(ActivityManager.TaskDescription(name))
+            }
+        } catch (_: Exception) {}
 
-        // Clear intent data so Flutter doesn't treat the content:// URI as a deep link
-        intent.data = null
+        try {
+            val safeDir = File(cacheDir, "intent_files/${uri.toString().hashCode()}").apply { mkdirs() }
+            val tempFile = File(safeDir, name)
+            contentResolver.openInputStream(uri)?.use { input ->
+                tempFile.outputStream().use { output -> input.copyTo(output) }
+            }
 
-        // For warm start: push to Flutter via MethodChannel
-        filesChannel?.invokeMethod("onFileReceived", mapOf(
-            "path" to file.path,
-            "name" to file.name,
-            "uri" to file.uri
-        ))
+            val file = PendingFile(tempFile.absolutePath, name, uri.toString())
+            pendingFile = file
+
+            // Clear intent data so Flutter doesn't treat the content:// URI as a deep link
+            intent.data = null
+
+            // For warm start: push to Flutter via MethodChannel
+            filesChannel?.invokeMethod("onFileReceived", mapOf(
+                "path" to file.path,
+                "name" to file.name,
+                "uri" to file.uri
+            ))
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to open intent URI: $uri", e)
+            intent.data = null
+        }
     }
 }
