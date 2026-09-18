@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#FFFFFF",
     "theme_color": "#0175C2",
-    "description": "A minimal, read-only Markdown reader.",
+    "description": "A minimal, read-focused Markdown reader.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

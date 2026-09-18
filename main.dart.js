@@ -102649,7 +102649,7 @@ A.a5T.prototype={}
 A.xO.prototype={
 I(a){var s=null,r=this.c
 r=r==null?s:"GoException: "+r.a
-return A.qn(!0,A.ee(A.es(A.b([B.a5c,B.jx,A.bb(r==null?"page not found":r,s,s,s,s,s,s),B.jx,new A.L1(new A.afP(a),B.a5m,s)],t.p),B.J,B.ex,B.U),s,s),B.ad,!0)}}
+return A.qn(!0,A.ee(A.es(A.b([B.a5c,B.jx,A.bb(r==null?"page not found":r,s,s,s,s,s,s),B.jx,new A.L1(new A.afP(a),B.a5l,s)],t.p),B.J,B.ex,B.U),s,s),B.ad,!0)}}
 A.afP.prototype={
 $0(){return A.jW(this.a).ta("/",null)},
 $S:0}
@@ -104167,7 +104167,7 @@ h=A.ee(A.bb(i+"x",d,d,d,h,d,d),d,d)
 i=t.BN
 i=A.aYN(new A.aJV(e),B.SO,A.cj([b.f],i),i)
 g=A.F(a0).ok.w
-g=A.pP(!1,d,d,d,!0,d,d,d,!0,d,d,d,d,d,d,d,!1,d,d,d,d,B.a5k,d,A.bb("Markread",d,d,d,g==null?d:g.hO(B.cE),d,d),d,d)
+g=A.pP(!1,d,d,d,!0,d,d,d,!0,d,d,d,d,d,d,d,!1,d,d,d,d,B.a5m,d,A.bb("Markread",d,d,d,g==null?d:g.hO(B.cE),d,d),d,d)
 return A.XG(c,d,new A.rO(A.aXr(A.aXs(A.b([new A.ov("Appearance",d),new A.b6(B.em,q,d),B.lf,new A.ov("Reader",d),p,o,n,new A.YT(b.x,new A.aJW(e),B.a4V,B.a54,d),new A.ov("Font Size",d),new A.b6(B.fF,m,d),j,new A.ov("Line Height",d),new A.b6(B.fF,l,d),h,new A.ov("Text Alignment",d),new A.b6(B.em,i,d),B.lf,new A.ov("About",d),g,A.pP(!1,d,d,d,!0,d,d,d,!0,d,d,d,d,d,d,d,!1,d,d,d,d,B.a5h,d,B.a57,d,d),A.pP(!1,d,d,d,!0,d,d,d,!0,d,d,d,d,d,d,new A.aJO(e,a0),!1,d,d,d,d,B.a53,d,B.a56,B.Po,d),B.D9],k),d,d,!1),d,d,r,s),d),d)},
 CA(a){return this.asI(a)},
 asI(a){var s=0,r=A.K(t.H),q,p=2,o=[],n,m,l
@@ -117990,8 +117990,8 @@ B.on=new A.ky(2,"dark")
 B.SL=s([B.hE,B.om,B.on],A.af("v<ky>"))
 B.SM=s([45,95,45,20,45,90,45,45,45],t.n)
 B.SN=s([120,120,20,45,20,15,20,120,120],t.n)
-B.a5l=new A.cf("Left",null,null,null,null,null,null,null,null,null,null,null)
-B.GM=new A.i9(B.jc,B.a5l,t.EQ)
+B.a5k=new A.cf("Left",null,null,null,null,null,null,null,null,null,null,null)
+B.GM=new A.i9(B.jc,B.a5k,t.EQ)
 B.a55=new A.cf("Justified",null,null,null,null,null,null,null,null,null,null,null)
 B.GK=new A.i9(B.jd,B.a55,t.EQ)
 B.SO=s([B.GM,B.GK],A.af("v<i9<m6>>"))
@@ -120119,9 +120119,9 @@ B.a5f=new A.cf("All",null,null,null,null,null,null,null,null,null,null,null)
 B.a5g=new A.cf("Monospace",null,null,null,null,null,null,null,null,null,null,null)
 B.a5h=new A.cf("1.0.17",null,null,null,null,null,null,null,null,null,null,null)
 B.a5i=new A.cf("Content font",null,null,null,null,null,null,null,null,null,null,null)
-B.a5k=new A.cf("A minimal, read-only Markdown reader.",null,null,null,null,null,null,null,null,null,null,null)
 B.a1U=new A.w(!0,B.k,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
-B.a5m=new A.cf("Go to home page",null,B.a1U,null,null,null,null,null,null,null,null,null)
+B.a5l=new A.cf("Go to home page",null,B.a1U,null,null,null,null,null,null,null,null,null)
+B.a5m=new A.cf("A minimal, read-focused Markdown reader.",null,null,null,null,null,null,null,null,null,null,null)
 B.E6=new A.JT(0,"system")
 B.a5n=new A.JT(1,"light")
 B.E7=new A.JT(2,"dark")
