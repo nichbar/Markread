@@ -23,37 +23,6 @@ Good open-source Markdown readers are hard to find on Android. Existing apps ten
 
 Since this is a Flutter app, the APK size will be larger than [MarkReader](https://github.com/usamaiqb/mark-reader). If you're size-sensitive, stick with the original.
 
-## Download
-
-Pre-built releases are available on the **[GitHub Releases](https://github.com/nichbar/Markread/releases/latest)** page.
-
-| Package | Architecture | Description |
-| :--- | :--- | :--- |
-| `Markread.v*.apk` | **arm64-v8a** | **Recommended** for modern Android devices (~20 MB) |
-| `Markread.v*-universal.apk` | **Universal** | Compatible with `arm64-v8a`, `armeabi-v7a`, and `x86_64` |
-
-### Web App
-
-Markread is also accessible directly in the browser:
-- **Live web app**: [md.hellmo.de](https://md.hellmo.de)
-- **Offline / Self-hosting**: Download `web-release.zip` from [GitHub Releases](https://github.com/nichbar/Markread/releases/latest)
-
-## Features
-
-- **Markdown rendering** with full formatting support (headings, tables, code blocks, images)
-- **Source code view** with syntax highlighting and language detection
-- **Raw text view** for plain text reading
-- **Search** within open documents
-- **Table of contents** with heading navigation
-- **Zoomable text** with pinch-to-zoom
-- **Reading surfaces**: Light and Dark (from app color schemes), with a session-only reader surface toggle
-- **Blue Topaz markdown theme** (light blue-cascade / dark rainbow headings), selectable in Settings
-- **Monospace markdown theme** (Typora-style source-like chrome; light + dark), selectable in Settings
-- **Customizable reading**: font size, line height, text alignment
-- **Word wrap** and **code block wrap** toggles
-- **Android intent support**: open markdown files from other apps via "Open with..."
-- **Material 3** design with light, dark, and system theme modes
-
 ## Screenshots
 
 <p align="center">
@@ -71,6 +40,21 @@ Markread is also accessible directly in the browser:
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <em>Dark</em>
 </p>
+
+## Download
+
+Pre-built releases are available on the **[GitHub Releases](https://github.com/nichbar/Markread/releases/latest)** page.
+
+| Package | Architecture | Description |
+| :--- | :--- | :--- |
+| `Markread.v*.apk` | **arm64-v8a** | **Recommended** for modern Android devices (~20 MB) |
+| `Markread.v*-universal.apk` | **Universal** | Compatible with `arm64-v8a`, `armeabi-v7a`, and `x86_64` |
+
+### Web App
+
+Markread is also accessible directly in the browser:
+- **Live web app**: [md.hellmo.de](https://md.hellmo.de)
+- **Offline / Self-hosting**: Download `web-release.zip` from [GitHub Releases](https://github.com/nichbar/Markread/releases/latest)
 
 ## Getting Started
 
