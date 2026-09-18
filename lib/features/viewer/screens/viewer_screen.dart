@@ -860,56 +860,25 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
             tooltip: 'Search',
             onPressed: null,
           ),
-        PopupMenuButton<String>(
-          enabled: !isLoading,
-          icon: Icon(
-            Icons.more_vert,
-            color: isLoading ? chromeColors.muted : chromeColors.content,
-          ),
-          color: chromeColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          onSelected: (value) {
-            switch (value) {
-              case 'word_wrap':
-                {
-                  final saved = _scrollController.offset;
-                  setState(() => _isWordWrapEnabled = !_isWordWrapEnabled);
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (_scrollController.hasClients) {
-                      _scrollController.jumpTo(saved.clamp(
-                        0.0,
-                        _scrollController.position.maxScrollExtent,
-                      ));
-                    }
-                  });
-                }
-                break;
-              case 'code_block_wrap':
-                {
-                  final saved = _scrollController.offset;
-                  setState(
-                      () => _isCodeBlockWrapEnabled = !_isCodeBlockWrapEnabled);
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (_scrollController.hasClients) {
-                      _scrollController.jumpTo(saved.clamp(
-                        0.0,
-                        _scrollController.position.maxScrollExtent,
-                      ));
-                    }
-                  });
-                }
-                break;
-              case 'source_code_mode':
-                {
-                  final current = ref.read(viewerProvider).value;
-                  if (current == null || current.isBinary) return;
-                  final saved = _scrollController.hasClients
-                      ? _scrollController.offset
-                      : null;
-                  ref.read(viewerProvider.notifier).toggleViewMode();
-                  if (saved != null) {
+        Theme(
+          data: isSurfaceDark ? buildDarkTheme() : buildLightTheme(),
+          child: PopupMenuButton<String>(
+            enabled: !isLoading,
+            position: PopupMenuPosition.under,
+            icon: Icon(
+              Icons.more_vert,
+              color: isLoading ? chromeColors.muted : chromeColors.content,
+            ),
+            color: chromeColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: (value) {
+              switch (value) {
+                case 'word_wrap':
+                  {
+                    final saved = _scrollController.offset;
+                    setState(() => _isWordWrapEnabled = !_isWordWrapEnabled);
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (_scrollController.hasClients) {
                         _scrollController.jumpTo(saved.clamp(
@@ -919,178 +888,221 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
                       }
                     });
                   }
-                }
-                break;
-              case 'reader_surface':
-                {
-                  final saved = _scrollController.offset;
-                  setState(
-                      () => _isReadingSurfaceDark = !_isReadingSurfaceDark);
-                  // Status bar follows isSurfaceDark on the next build.
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (_scrollController.hasClients) {
-                      _scrollController.jumpTo(saved.clamp(
-                        0.0,
-                        _scrollController.position.maxScrollExtent,
-                      ));
+                  break;
+                case 'code_block_wrap':
+                  {
+                    final saved = _scrollController.offset;
+                    setState(
+                        () => _isCodeBlockWrapEnabled = !_isCodeBlockWrapEnabled);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.jumpTo(saved.clamp(
+                          0.0,
+                          _scrollController.position.maxScrollExtent,
+                        ));
+                      }
+                    });
+                  }
+                  break;
+                case 'source_code_mode':
+                  {
+                    final current = ref.read(viewerProvider).value;
+                    if (current == null || current.isBinary) return;
+                    final saved = _scrollController.hasClients
+                        ? _scrollController.offset
+                        : null;
+                    ref.read(viewerProvider.notifier).toggleViewMode();
+                    if (saved != null) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (_scrollController.hasClients) {
+                          _scrollController.jumpTo(saved.clamp(
+                            0.0,
+                            _scrollController.position.maxScrollExtent,
+                          ));
+                        }
+                      });
                     }
-                  });
-                }
-                break;
-              case 'edit_source':
-                context.push('/edit?name=${Uri.encodeComponent(titleName)}');
-                break;
-              case 'bench_hud':
-                setState(() => _showBenchHud = !_showBenchHud);
-                break;
-              case 'settings':
-                context.push('/settings');
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'word_wrap',
-              child: Row(
-                children: [
-                  Icon(Icons.wrap_text, color: chromeColors.content),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text('Wrap long lines',
-                        style: TextStyle(color: chromeColors.content)),
-                  ),
-                  Switch(
-                    value: _isWordWrapEnabled,
-                    onChanged: null,
-                  ),
-                ],
-              ),
-            ),
-            if (_isWordWrapEnabled)
+                  }
+                  break;
+                case 'reader_surface':
+                  {
+                    final saved = _scrollController.offset;
+                    setState(
+                        () => _isReadingSurfaceDark = !_isReadingSurfaceDark);
+                    // Status bar follows isSurfaceDark on the next build.
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_scrollController.hasClients) {
+                        _scrollController.jumpTo(saved.clamp(
+                          0.0,
+                          _scrollController.position.maxScrollExtent,
+                        ));
+                      }
+                    });
+                  }
+                  break;
+                case 'edit_source':
+                  context.push('/edit?name=${Uri.encodeComponent(titleName)}');
+                  break;
+                case 'bench_hud':
+                  setState(() => _showBenchHud = !_showBenchHud);
+                  break;
+                case 'settings':
+                  context.push('/settings');
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
               PopupMenuItem(
-                value: 'code_block_wrap',
+                value: 'word_wrap',
                 child: Row(
                   children: [
-                    Icon(Icons.code, color: chromeColors.content),
+                    Icon(Icons.wrap_text, color: chromeColors.content),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text('Wrap code blocks',
+                      child: Text('Wrap long lines',
                           style: TextStyle(color: chromeColors.content)),
                     ),
-                    Switch(
-                      value: _isCodeBlockWrapEnabled,
-                      onChanged: null,
+                    IgnorePointer(
+                      child: Switch(
+                        value: _isWordWrapEnabled,
+                        onChanged: (_) {},
+                      ),
                     ),
                   ],
                 ),
               ),
-            PopupMenuItem(
-              value: 'source_code_mode',
-              enabled: canToggleSourceCodeMode,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.code_off,
-                    color: canToggleSourceCodeMode
+              if (_isWordWrapEnabled)
+                PopupMenuItem(
+                  value: 'code_block_wrap',
+                  child: Row(
+                    children: [
+                      Icon(Icons.code, color: chromeColors.content),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text('Wrap code blocks',
+                            style: TextStyle(color: chromeColors.content)),
+                      ),
+                      IgnorePointer(
+                        child: Switch(
+                          value: _isCodeBlockWrapEnabled,
+                          onChanged: (_) {},
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              PopupMenuItem(
+                value: 'source_code_mode',
+                enabled: canToggleSourceCodeMode,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.code_off,
+                      color: canToggleSourceCodeMode
+                          ? chromeColors.content
+                          : chromeColors.muted,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Source code mode',
+                        style: TextStyle(
+                          color: canToggleSourceCodeMode
+                              ? chromeColors.content
+                              : chromeColors.muted,
+                        ),
+                      ),
+                    ),
+                    IgnorePointer(
+                      child: Switch(
+                        value: isSourceCodeModeOn,
+                        onChanged: canToggleSourceCodeMode ? (_) {} : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'edit_source',
+                enabled: canToggleSourceCodeMode,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.edit_outlined,
+                      color: canToggleSourceCodeMode
                         ? chromeColors.content
                         : chromeColors.muted,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Source code mode',
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Edit source',
                       style: TextStyle(
                         color: canToggleSourceCodeMode
                             ? chromeColors.content
                             : chromeColors.muted,
                       ),
                     ),
-                  ),
-                  Switch(
-                    value: isSourceCodeModeOn,
-                    onChanged: null,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            PopupMenuItem(
-              value: 'edit_source',
-              enabled: canToggleSourceCodeMode,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.edit_outlined,
-                    color: canToggleSourceCodeMode
-                        ? chromeColors.content
-                        : chromeColors.muted,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Edit source',
-                    style: TextStyle(
-                      color: canToggleSourceCodeMode
-                          ? chromeColors.content
-                          : chromeColors.muted,
+              PopupMenuItem(
+                value: 'reader_surface',
+                child: Row(
+                  children: [
+                    Icon(
+                      isSurfaceDark ? Icons.dark_mode : Icons.light_mode,
+                      color: chromeColors.content,
                     ),
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'reader_surface',
-              child: Row(
-                children: [
-                  Icon(
-                    isSurfaceDark ? Icons.dark_mode : Icons.light_mode,
-                    color: chromeColors.content,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Reader surface',
-                      style: TextStyle(color: chromeColors.content),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Reader surface',
+                        style: TextStyle(color: chromeColors.content),
+                      ),
                     ),
-                  ),
-                  Text(
-                    isSurfaceDark ? 'Dark' : 'Light',
-                    style:
-                        TextStyle(fontSize: 11, color: chromeColors.muted),
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuItem(
-              value: 'bench_hud',
-              child: Row(
-                children: [
-                  Icon(Icons.speed, color: chromeColors.content),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _showBenchHud ? 'Hide FPS HUD' : 'Show FPS HUD',
-                      style: TextStyle(color: chromeColors.content),
+                    Text(
+                      isSurfaceDark ? 'Dark' : 'Light',
+                      style:
+                          TextStyle(fontSize: 11, color: chromeColors.muted),
                     ),
-                  ),
-                  Switch(
-                    value: _showBenchHud,
-                    onChanged: null,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const PopupMenuDivider(height: 1),
-            PopupMenuItem(
-              value: 'settings',
-              child: Row(
-                children: [
-                  Icon(Icons.settings, color: chromeColors.content),
-                  const SizedBox(width: 12),
-                  Text('Settings',
-                      style: TextStyle(color: chromeColors.content)),
-                ],
+              PopupMenuItem(
+                value: 'bench_hud',
+                child: Row(
+                  children: [
+                    Icon(Icons.speed, color: chromeColors.content),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _showBenchHud ? 'Hide FPS HUD' : 'Show FPS HUD',
+                        style: TextStyle(color: chromeColors.content),
+                      ),
+                    ),
+                    IgnorePointer(
+                      child: Switch(
+                        value: _showBenchHud,
+                        onChanged: (_) {},
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const PopupMenuDivider(height: 1),
+              PopupMenuItem(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, color: chromeColors.content),
+                    const SizedBox(width: 12),
+                    Text('Settings',
+                        style: TextStyle(color: chromeColors.content)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -1121,9 +1133,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
 
     // Reader surface can invert independently of app theme. Re-scope Theme so
     // GitHub code tokens / GptMarkdownTheme (Theme.brightness) match the page.
-    final surfaceTheme = Theme.of(context).copyWith(
-      colorScheme: isSurfaceDark ? darkColorScheme : lightColorScheme,
-    );
+    final surfaceTheme = isSurfaceDark ? buildDarkTheme() : buildLightTheme();
 
     return Column(
       children: [
