@@ -10,15 +10,34 @@ class DynamicFontLoader {
   static final Set<String> _loadedFamilies = <String>{};
   static final Map<String, Future<bool>> _loadingFutures = <String, Future<bool>>{};
 
+  /// Built-in platform system fonts that must not be dynamically loaded via [FontLoader],
+  /// as registering a single raw font file under these names would override the platform's
+  /// multi-weight font family (regular, medium, bold, etc.) with a single regular weight.
+  static bool isPlatformSystemFont(String familyName) {
+    final lower = familyName.trim().toLowerCase();
+    return lower == 'roboto' ||
+        lower == 'sans-serif' ||
+        lower == 'sans-serif-medium' ||
+        lower == 'sans-serif-condensed' ||
+        lower == 'sans-serif-light' ||
+        lower == 'serif' ||
+        lower == 'monospace' ||
+        lower == 'casual' ||
+        lower == 'cursive';
+  }
+
   /// Asynchronously loads a font file into Flutter's FontLoader engine under [familyName].
   ///
   /// Returns `true` if the font is loaded successfully or was already loaded,
-  /// or if [filePath] is null/empty (built-in platform alias).
+  /// or if [filePath] is null/empty (built-in platform alias), or if it is a built-in
+  /// platform system font.
   static Future<bool> loadFont(String familyName, String? filePath) async {
     final trimmedName = familyName.trim();
     if (trimmedName.isEmpty) return false;
 
-    if (filePath == null || filePath.trim().isEmpty) {
+    if (filePath == null ||
+        filePath.trim().isEmpty ||
+        isPlatformSystemFont(trimmedName)) {
       return true;
     }
 

@@ -497,7 +497,9 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
 
   void _preloadFonts() {
     for (final font in widget.fonts) {
-      if (font.path != null && !DynamicFontLoader.isFontLoaded(font.name)) {
+      if (font.path != null &&
+          !DynamicFontLoader.isPlatformSystemFont(font.name) &&
+          !DynamicFontLoader.isFontLoaded(font.name)) {
         DynamicFontLoader.loadFont(font.name, font.path).then((loaded) {
           if (loaded && mounted) {
             setState(() {});

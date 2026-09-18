@@ -21,6 +21,18 @@ void main() {
       expect(DynamicFontLoader.isFontLoaded('sans-serif'), isFalse);
     });
 
+    test('returns true for built-in platform system fonts without loading file', () async {
+      expect(DynamicFontLoader.isPlatformSystemFont('Roboto'), isTrue);
+      expect(DynamicFontLoader.isPlatformSystemFont('roboto'), isTrue);
+      expect(DynamicFontLoader.isPlatformSystemFont('sans-serif'), isTrue);
+      expect(DynamicFontLoader.isPlatformSystemFont('monospace'), isTrue);
+      expect(DynamicFontLoader.isPlatformSystemFont('CustomFont'), isFalse);
+
+      final result = await DynamicFontLoader.loadFont('Roboto', '/some/system/font/Roboto-Regular.ttf');
+      expect(result, isTrue);
+      expect(DynamicFontLoader.isFontLoaded('Roboto'), isFalse);
+    });
+
     test('returns false for non-existent file path', () async {
       final result = await DynamicFontLoader.loadFont(
         'CustomFont',

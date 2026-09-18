@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 class DynamicFontLoader {
   const DynamicFontLoader._();
 
+  /// Checks whether [familyName] is a built-in platform system font.
+  static bool isPlatformSystemFont(String familyName) => false;
+
   /// No-op on Web / platforms without direct file system font access.
   static Future<bool> loadFont(String familyName, String? filePath) async {
     return true;

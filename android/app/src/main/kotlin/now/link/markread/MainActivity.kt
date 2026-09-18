@@ -177,8 +177,9 @@ class MainActivity : FlutterActivity() {
     private fun extractSystemFonts(): List<Map<String, Any?>> {
         val fontsMap = linkedMapOf<String, DiscoveredFont>()
 
-        // 1. Register standard platform font aliases
+        // 1. Register standard platform font aliases (built-in Android fonts)
         val standardAliases = listOf(
+            DiscoveredFont("Roboto", null, hasChinese = false, isMonospace = false),
             DiscoveredFont("sans-serif", null, hasChinese = false, isMonospace = false),
             DiscoveredFont("sans-serif-medium", null, hasChinese = false, isMonospace = false),
             DiscoveredFont("sans-serif-condensed", null, hasChinese = false, isMonospace = false),
@@ -246,9 +247,21 @@ class MainActivity : FlutterActivity() {
         if (cleanName.isBlank() || cleanName.startsWith("@")) return
 
         val key = cleanName.lowercase()
+        val isDefaultPlatform = key == "roboto" ||
+            key == "sans-serif" ||
+            key == "sans-serif-medium" ||
+            key == "sans-serif-condensed" ||
+            key == "sans-serif-light" ||
+            key == "serif" ||
+            key == "monospace" ||
+            key == "casual" ||
+            key == "cursive"
+
+        val effectivePath = if (isDefaultPlatform) null else path
+
         val existing = fontsMap[key]
         if (existing != null) {
-            val resolvedPath = existing.path ?: path
+            val resolvedPath = if (isDefaultPlatform) null else (existing.path ?: effectivePath)
             val resolvedChinese = existing.hasChinese || hasChinese
             val resolvedMono = existing.isMonospace || isMonospace
             fontsMap[key] = existing.copy(
@@ -259,7 +272,7 @@ class MainActivity : FlutterActivity() {
         } else {
             fontsMap[key] = DiscoveredFont(
                 name = cleanName,
-                path = path,
+                path = effectivePath,
                 hasChinese = hasChinese,
                 isMonospace = isMonospace
             )
