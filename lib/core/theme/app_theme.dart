@@ -22,7 +22,7 @@ const lightColorScheme = ColorScheme(
   surface: Color(0xFFFCFCFC),
   onSurface: Color(0xFF1A1A1A),
   surfaceContainerHighest: Color(0xFFE1E2E4),
-  onSurfaceVariant: Color(0xFF44474A),
+  onSurfaceVariant: Color(0xFF5F6368),
   outline: Color(0xFF757780),
   onInverseSurface: Color(0xFFF2F2F2),
   inverseSurface: Color(0xFF2F2F2F),
@@ -54,7 +54,7 @@ const darkColorScheme = ColorScheme(
   surface: Color(0xFF1C2228),
   onSurface: Color(0xFFE4E4E4),
   surfaceContainerHighest: Color(0xFF44474A),
-  onSurfaceVariant: Color(0xFFC5C6CA),
+  onSurfaceVariant: Color(0xFF969AA0),
   outline: Color(0xFF8F9195),
   onInverseSurface: Color(0xFF1C2228),
   inverseSurface: Color(0xFFE4E4E4),
@@ -65,10 +65,58 @@ const darkColorScheme = ColorScheme(
   scrim: Color(0xFF000000),
 );
 
+SwitchThemeData buildSwitchTheme(ColorScheme colorScheme) {
+  return SwitchThemeData(
+    thumbColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.disabled)) {
+        if (states.contains(WidgetState.selected)) {
+          return colorScheme.surface;
+        }
+        return colorScheme.onSurface.withValues(alpha: 0.38);
+      }
+      if (states.contains(WidgetState.selected)) {
+        return colorScheme.onPrimary;
+      }
+      return colorScheme.outline;
+    }),
+    trackColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.disabled)) {
+        if (states.contains(WidgetState.selected)) {
+          return colorScheme.onSurface.withValues(alpha: 0.12);
+        }
+        return colorScheme.surfaceContainerHighest.withValues(alpha: 0.12);
+      }
+      if (states.contains(WidgetState.selected)) {
+        return colorScheme.primary;
+      }
+      return colorScheme.surfaceContainerHighest;
+    }),
+    trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.disabled)) {
+        if (states.contains(WidgetState.selected)) {
+          return Colors.transparent;
+        }
+        return colorScheme.onSurface.withValues(alpha: 0.12);
+      }
+      if (states.contains(WidgetState.selected)) {
+        return Colors.transparent;
+      }
+      return colorScheme.outline;
+    }),
+    overlayColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) {
+        return colorScheme.primary.withValues(alpha: 0.12);
+      }
+      return colorScheme.onSurface.withValues(alpha: 0.12);
+    }),
+  );
+}
+
 ThemeData buildLightTheme() {
   return ThemeData(
     colorScheme: lightColorScheme,
     useMaterial3: true,
+    switchTheme: buildSwitchTheme(lightColorScheme),
   );
 }
 
@@ -76,5 +124,6 @@ ThemeData buildDarkTheme() {
   return ThemeData(
     colorScheme: darkColorScheme,
     useMaterial3: true,
+    switchTheme: buildSwitchTheme(darkColorScheme),
   );
 }
