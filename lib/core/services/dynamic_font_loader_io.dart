@@ -1,4 +1,5 @@
 // lib/core/services/dynamic_font_loader_io.dart
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -7,8 +8,14 @@ import 'package:flutter/services.dart';
 class DynamicFontLoader {
   const DynamicFontLoader._();
 
+  static const int _maxConcurrentLoads = 3;
+  static int _activeLoads = 0;
+  static final List<Future<void> Function()> _queue =
+      <Future<void> Function()>[];
+
   static final Set<String> _loadedFamilies = <String>{};
-  static final Map<String, Future<bool>> _loadingFutures = <String, Future<bool>>{};
+  static final Map<String, Future<bool>> _loadingFutures =
+      <String, Future<bool>>{};
 
   /// Built-in platform system fonts that must not be dynamically loaded via [FontLoader],
   /// as registering a single raw font file under these names would override the platform's
@@ -49,13 +56,45 @@ class DynamicFontLoader {
       return await _loadingFutures[trimmedName]!;
     }
 
-    final future = _loadFontInternal(trimmedName, filePath.trim());
-    _loadingFutures[trimmedName] = future;
+    final completer = Completer<bool>();
+    _loadingFutures[trimmedName] = completer.future;
 
+    _enqueue(() async {
+      try {
+        final result = await _loadFontInternal(trimmedName, filePath.trim());
+        completer.complete(result);
+      } catch (e, stack) {
+        debugPrint(
+            '[DynamicFontLoader] Error loading font "$trimmedName" from "$filePath": $e\n$stack');
+        completer.complete(false);
+      } finally {
+        _loadingFutures.remove(trimmedName);
+      }
+    });
+
+    return await completer.future;
+  }
+
+  static void _enqueue(Future<void> Function() task) {
+    if (_activeLoads < _maxConcurrentLoads) {
+      _runTask(task);
+    } else {
+      _queue.add(task);
+    }
+  }
+
+  static void _runTask(Future<void> Function() task) async {
+    _activeLoads++;
     try {
-      return await future;
+      await task();
     } finally {
-      _loadingFutures.remove(trimmedName);
+      if (_activeLoads > 0) {
+        _activeLoads--;
+      }
+      if (_queue.isNotEmpty) {
+        final next = _queue.removeAt(0);
+        _runTask(next);
+      }
     }
   }
 
@@ -103,5 +142,7 @@ class DynamicFontLoader {
   static void resetForTesting() {
     _loadedFamilies.clear();
     _loadingFutures.clear();
+    _queue.clear();
+    _activeLoads = 0;
   }
 }

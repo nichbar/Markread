@@ -69,5 +69,24 @@ void main() {
       final results = await Future.wait([f1, f2]);
       expect(results, [false, false]);
     });
+
+    test('queues and handles multiple distinct font loads without crashing', () async {
+      final futures = List.generate(
+        10,
+        (i) => DynamicFontLoader.loadFont('Font$i', '/path/missing_$i.ttf'),
+      );
+      final results = await Future.wait(futures);
+      expect(results, List.filled(10, false));
+    });
+
+    test('resetForTesting during in-flight operations does not cause underflow or break subsequent loads', () async {
+      final future = DynamicFontLoader.loadFont('InFlightFont', '/path/to/missing.ttf');
+      DynamicFontLoader.resetForTesting();
+      await future;
+
+      // After in-flight completes post-reset, subsequent loads should still work properly
+      final nextResult = await DynamicFontLoader.loadFont('AfterResetFont', '/path/to/missing.ttf');
+      expect(nextResult, isFalse);
+    });
   });
 }

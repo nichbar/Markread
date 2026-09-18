@@ -247,5 +247,27 @@ void main() {
       expect(find.widgetWithText(ListTile, 'CustomFont 11'), findsNothing);
       expect(find.widgetWithText(ListTile, 'CustomFont 13'), findsNothing);
     });
+
+    testWidgets('sheet loads selected font on tap', (tester) async {
+      final manyFonts = List.generate(
+        30,
+        (i) => SystemFont(
+          name: 'OffscreenFont $i',
+          path: '/system/fonts/OffscreenFont_$i.ttf',
+        ),
+      );
+
+      await tester.pumpWidget(buildTestApp(fonts: manyFonts));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ListTile, 'Content font'));
+      await tester.pumpAndSettle();
+
+      // Tap on visible font
+      await tester.tap(find.widgetWithText(ListTile, 'OffscreenFont 0'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('OffscreenFont 0'), findsOneWidget);
+    });
   });
 }

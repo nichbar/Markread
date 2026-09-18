@@ -521,28 +521,56 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
   String _searchQuery = '';
   _FontFilter _selectedFilter = _FontFilter.all;
 
+  late final List<SystemFont> _baseSortedFonts;
+  late List<SystemFont> _filteredFonts;
+
+  Animation<double>? _routeAnimation;
+  bool _isAnimationComplete = false;
+  Timer? _fallbackAnimationTimer;
+
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.trim().toLowerCase();
-      });
-    });
+    _initSortedFonts();
+    _searchController.addListener(_onSearchChanged);
 
-    // Asynchronously preload font files for live preview rendering
-    _preloadFonts();
+    // Fallback: Ensure font loading is unlocked even if route animation listener does not fire
+    _fallbackAnimationTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted && !_isAnimationComplete) {
+        setState(() {
+          _isAnimationComplete = true;
+        });
+      }
+    });
   }
 
-  void _preloadFonts() {
-    for (final font in widget.fonts) {
-      if (font.path != null &&
-          !DynamicFontLoader.isPlatformSystemFont(font.name) &&
-          !DynamicFontLoader.isFontLoaded(font.name)) {
-        DynamicFontLoader.loadFont(font.name, font.path).then((loaded) {
-          if (loaded && mounted) {
-            setState(() {});
-          }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animation = ModalRoute.of(context)?.animation;
+    if (_routeAnimation != animation) {
+      _routeAnimation?.removeStatusListener(_onAnimationStatusChanged);
+      _routeAnimation = animation;
+      if (animation != null) {
+        if (animation.isCompleted) {
+          _isAnimationComplete = true;
+        } else {
+          animation.addStatusListener(_onAnimationStatusChanged);
+        }
+      }
+    }
+    if (animation == null) {
+      _isAnimationComplete = true;
+    }
+  }
+
+  void _onAnimationStatusChanged(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      _routeAnimation?.removeStatusListener(_onAnimationStatusChanged);
+      _fallbackAnimationTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _isAnimationComplete = true;
         });
       }
     }
@@ -550,12 +578,31 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
 
   @override
   void dispose() {
+    _fallbackAnimationTimer?.cancel();
+    _routeAnimation?.removeStatusListener(_onAnimationStatusChanged);
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  List<SystemFont> _getSortedAndFilteredFonts() {
-    var list = widget.fonts;
+  void _initSortedFonts() {
+    if (widget.isCodeFont) {
+      final mono = widget.fonts.where((f) => f.isMonospace).toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      final nonMono = widget.fonts.where((f) => !f.isMonospace).toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      _baseSortedFonts = List.unmodifiable([...mono, ...nonMono]);
+    } else {
+      _baseSortedFonts = List.unmodifiable(
+        widget.fonts.toList()
+          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+      );
+    }
+    _updateFilteredFonts();
+  }
+
+  void _updateFilteredFonts() {
+    var list = _baseSortedFonts;
 
     switch (_selectedFilter) {
       case _FontFilter.chinese:
@@ -574,22 +621,21 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
           .toList();
     }
 
-    if (widget.isCodeFont) {
-      final mono = list.where((f) => f.isMonospace).toList()
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-      final nonMono = list.where((f) => !f.isMonospace).toList()
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-      return [...mono, ...nonMono];
-    } else {
-      return list.toList()
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    _filteredFonts = list;
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.trim().toLowerCase();
+    if (query != _searchQuery) {
+      setState(() {
+        _searchQuery = query;
+        _updateFilteredFonts();
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredFonts = _getSortedAndFilteredFonts();
-
     final showSystemDefault = _selectedFilter == _FontFilter.all &&
         (_searchQuery.isEmpty ||
             widget.defaultLabel.toLowerCase().contains(_searchQuery) ||
@@ -664,8 +710,11 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                     label: const Text('All'),
                     selected: _selectedFilter == _FontFilter.all,
                     onSelected: (selected) {
-                      if (selected) {
-                        setState(() => _selectedFilter = _FontFilter.all);
+                      if (selected && _selectedFilter != _FontFilter.all) {
+                        setState(() {
+                          _selectedFilter = _FontFilter.all;
+                          _updateFilteredFonts();
+                        });
                       }
                     },
                   ),
@@ -674,8 +723,11 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                     label: const Text('中文'),
                     selected: _selectedFilter == _FontFilter.chinese,
                     onSelected: (selected) {
-                      if (selected) {
-                        setState(() => _selectedFilter = _FontFilter.chinese);
+                      if (selected && _selectedFilter != _FontFilter.chinese) {
+                        setState(() {
+                          _selectedFilter = _FontFilter.chinese;
+                          _updateFilteredFonts();
+                        });
                       }
                     },
                   ),
@@ -684,8 +736,11 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                     label: const Text('Monospace'),
                     selected: _selectedFilter == _FontFilter.monospace,
                     onSelected: (selected) {
-                      if (selected) {
-                        setState(() => _selectedFilter = _FontFilter.monospace);
+                      if (selected && _selectedFilter != _FontFilter.monospace) {
+                        setState(() {
+                          _selectedFilter = _FontFilter.monospace;
+                          _updateFilteredFonts();
+                        });
                       }
                     },
                   ),
@@ -696,7 +751,7 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
             Expanded(
               child: ListView.builder(
                 controller: scrollController,
-                itemCount: filteredFonts.length + (showSystemDefault ? 1 : 0),
+                itemCount: _filteredFonts.length + (showSystemDefault ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (showSystemDefault && index == 0) {
                     final isSelected = widget.selectedFont == null ||
@@ -721,90 +776,14 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
                   }
 
                   final fontIndex = showSystemDefault ? index - 1 : index;
-                  final font = filteredFonts[fontIndex];
+                  final font = _filteredFonts[fontIndex];
                   final isSelected = widget.selectedFont == font.name;
 
-                  return ListTile(
-                    title: Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            font.name,
-                            style: TextStyle(
-                              fontFamily: font.name,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (font.hasChinese) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '中文',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                        if (font.isMonospace) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .secondaryContainer,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'Monospace',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSecondaryContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    subtitle: Text(
-                      'Quick brown fox · 敏捷的棕狐',
-                      style: TextStyle(
-                        fontFamily: font.name,
-                        fontSize: 13.5,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: isSelected
-                        ? Icon(
-                            Icons.check,
-                            color: Theme.of(context).colorScheme.primary,
-                          )
-                        : null,
+                  return _FontListTile(
+                    key: ValueKey(font.name),
+                    font: font,
+                    isSelected: isSelected,
+                    canLoad: _isAnimationComplete,
                     onTap: () {
                       if (font.path != null) {
                         unawaited(DynamicFontLoader.loadFont(font.name, font.path));
@@ -819,6 +798,168 @@ class _FontSelectionSheetState extends State<_FontSelectionSheet> {
           ],
         );
       },
+    );
+  }
+}
+
+class _FontListTile extends StatefulWidget {
+  final SystemFont font;
+  final bool isSelected;
+  final bool canLoad;
+  final VoidCallback onTap;
+
+  const _FontListTile({
+    super.key,
+    required this.font,
+    required this.isSelected,
+    required this.canLoad,
+    required this.onTap,
+  });
+
+  @override
+  State<_FontListTile> createState() => _FontListTileState();
+}
+
+class _FontListTileState extends State<_FontListTile> {
+  bool _isLoaded = false;
+  Timer? _loadDebounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAndLoad();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FontListTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if ((widget.canLoad && !oldWidget.canLoad) ||
+        widget.font.name != oldWidget.font.name ||
+        widget.font.path != oldWidget.font.path) {
+      _checkAndLoad();
+    }
+  }
+
+  void _checkAndLoad() {
+    final fontName = widget.font.name;
+    if (DynamicFontLoader.isPlatformSystemFont(fontName) ||
+        DynamicFontLoader.isFontLoaded(fontName)) {
+      _isLoaded = true;
+      return;
+    }
+
+    _loadDebounceTimer?.cancel();
+
+    if (!widget.canLoad || widget.font.path == null) {
+      return;
+    }
+
+    // Small debounce (60ms) so rapid list flings don't trigger disk reads
+    _loadDebounceTimer = Timer(const Duration(milliseconds: 60), () {
+      if (!mounted) return;
+      DynamicFontLoader.loadFont(fontName, widget.font.path).then((loaded) {
+        if (loaded && mounted) {
+          setState(() {
+            _isLoaded = true;
+          });
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _loadDebounceTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final font = widget.font;
+    final fontToUse = _isLoaded ? font.name : null;
+
+    return ListTile(
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              font.name,
+              style: TextStyle(
+                fontFamily: fontToUse,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (font.hasChinese) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 6,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '中文',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onPrimaryContainer,
+                ),
+              ),
+            ),
+          ],
+          if (font.isMonospace) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 6,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .secondaryContainer,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                'Monospace',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSecondaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      subtitle: Text(
+        'Quick brown fox · 敏捷的棕狐',
+        style: TextStyle(
+          fontFamily: fontToUse,
+          fontSize: 13.5,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: widget.isSelected
+          ? Icon(
+              Icons.check,
+              color: Theme.of(context).colorScheme.primary,
+            )
+          : null,
+      onTap: widget.onTap,
     );
   }
 }
