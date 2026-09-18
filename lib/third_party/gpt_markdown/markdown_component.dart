@@ -320,8 +320,11 @@ class HrLine extends BlockMd {
 
 /// Checkbox component
 class CheckBoxMd extends BlockMd {
+  CheckBoxMd();
+
   @override
-  String get expString => (r"\[((?:\x|\ ))\]\ (\S[^\n]*?)$");
+  String get expString =>
+      r"(?:(?:\uE003(\d+)\uE004)?\s*)\[([ xX])\](?:\ (.*))?$";
 
   @override
   Widget build(
@@ -330,10 +333,24 @@ class CheckBoxMd extends BlockMd {
     final GptMarkdownConfig config,
   ) {
     var match = this.exp.firstMatch(text.trim());
+    final tagIndexStr = match?[1];
+    final isChecked = (match?[2] ?? '').toLowerCase() == 'x';
+    final label = match?[3] ?? '';
+    final int index = tagIndexStr != null
+        ? int.parse(tagIndexStr)
+        : (config.checkboxIndexCounter?.next() ?? config.checkboxStartIndex);
+    final ValueChanged<bool?>? onChanged = config.onCheckboxTap != null
+        ? (bool? val) {
+            final newValue = val ?? !isChecked;
+            config.onCheckboxTap!(index, newValue);
+          }
+        : null;
+
     return CustomCb(
-      value: ("${match?[1]}" == "x"),
+      value: isChecked,
       textDirection: config.textDirection,
-      child: MdWidget(context, "${match?[2]}", false, config: config),
+      onChanged: onChanged,
+      child: MdWidget(context, label, false, config: config),
     );
   }
 }
@@ -430,7 +447,7 @@ class BlockQuote extends InlineMd {
 /// Unordered list component
 class UnOrderedList extends BlockMd {
   @override
-  String get expString => (r"(?:\-|\*)\ ([^\n]+)$");
+  String get expString => (r"(?:\-|\*|\+)\ ([^\n]+)$");
 
   @override
   Widget build(

@@ -84,6 +84,17 @@ typedef LatexBuilder =
     );
 typedef LatexWrapper = LatexBuilder;
 
+/// Tracks sequential checkbox indices during a render pass.
+class CheckboxIndexCounter {
+  CheckboxIndexCounter(this.startIndex) : _current = startIndex;
+
+  final int startIndex;
+  int _current;
+
+  int next() => _current++;
+  void reset() => _current = startIndex;
+}
+
 /// A configuration class for the GPT Markdown component.
 class GptMarkdownConfig {
   const GptMarkdownConfig({
@@ -109,6 +120,9 @@ class GptMarkdownConfig {
     this.inlineComponents,
     this.tableBuilder,
     this.selectable = false,
+    this.onCheckboxTap,
+    this.checkboxStartIndex = 0,
+    this.checkboxIndexCounter,
   });
 
   /// The direction of the text.
@@ -177,6 +191,15 @@ class GptMarkdownConfig {
   /// Whether the text should be selectable.
   final bool selectable;
 
+  /// The callback function to handle checkbox toggle clicks.
+  final void Function(int index, bool value)? onCheckboxTap;
+
+  /// The starting checkbox index for this render chunk.
+  final int checkboxStartIndex;
+
+  /// Mutable counter shared across recursive MdWidget passes during a build.
+  final CheckboxIndexCounter? checkboxIndexCounter;
+
   /// A copy of the configuration with the specified parameters.
   GptMarkdownConfig copyWith({
     TextStyle? style,
@@ -201,6 +224,9 @@ class GptMarkdownConfig {
     List<MarkdownComponent>? inlineComponents,
     TableBuilder? tableBuilder,
     bool? selectable,
+    void Function(int index, bool value)? onCheckboxTap,
+    int? checkboxStartIndex,
+    CheckboxIndexCounter? checkboxIndexCounter,
   }) {
     return GptMarkdownConfig(
       style: style ?? this.style,
@@ -225,6 +251,9 @@ class GptMarkdownConfig {
       inlineComponents: inlineComponents ?? this.inlineComponents,
       tableBuilder: tableBuilder ?? this.tableBuilder,
       selectable: selectable ?? this.selectable,
+      onCheckboxTap: onCheckboxTap ?? this.onCheckboxTap,
+      checkboxStartIndex: checkboxStartIndex ?? this.checkboxStartIndex,
+      checkboxIndexCounter: checkboxIndexCounter ?? this.checkboxIndexCounter,
     );
   }
 
@@ -270,6 +299,8 @@ class GptMarkdownConfig {
         latexBuilder == other.latexBuilder &&
         sourceTagBuilder == other.sourceTagBuilder &&
         orderedListBuilder == other.orderedListBuilder &&
-        unOrderedListBuilder == other.unOrderedListBuilder;
+        unOrderedListBuilder == other.unOrderedListBuilder &&
+        onCheckboxTap == other.onCheckboxTap &&
+        checkboxStartIndex == other.checkboxStartIndex;
   }
 }

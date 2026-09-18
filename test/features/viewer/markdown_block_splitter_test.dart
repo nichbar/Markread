@@ -254,5 +254,30 @@ void main() {
       // Second heading also follows a blank.
       expect(headingBlocks[1].hasPrecedingParagraphBreak, isTrue);
     });
+
+    test('checkboxStartIndex tracks sequential checkbox indices and ignores code fences', () {
+      const input = '''
+# Heading
+
+- [ ] Task 1
+- [x] Task 2
+
+```dart
+- [ ] not a task
+```
+
+- [ ] Task 3
+''';
+      final blocks = splitMarkdownBlocks(input);
+      final task1 = blocks.firstWhere((b) => b.text.contains('Task 1'));
+      final task2 = blocks.firstWhere((b) => b.text.contains('Task 2'));
+      final fence = blocks.firstWhere((b) => b.text.contains('```dart'));
+      final task3 = blocks.firstWhere((b) => b.text.contains('Task 3'));
+
+      expect(task1.checkboxStartIndex, 0);
+      expect(task2.checkboxStartIndex, 1);
+      expect(fence.checkboxStartIndex, 2);
+      expect(task3.checkboxStartIndex, 2);
+    });
   });
 }

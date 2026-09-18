@@ -14,6 +14,7 @@ void main() {
       expect(prefs.textAlignment, ReadingTextAlign.left);
       expect(prefs.fontFamily, isNull);
       expect(prefs.codeFontFamily, isNull);
+      expect(prefs.toggleCheckboxesInReadOnly, isFalse);
     });
 
     test('copyWith updates fontFamily and clearFontFamily clears it', () {
@@ -32,6 +33,15 @@ void main() {
 
       final cleared = updated.copyWith(clearCodeFontFamily: true);
       expect(cleared.codeFontFamily, isNull);
+    });
+
+    test('copyWith updates toggleCheckboxesInReadOnly', () {
+      const prefs = UserPreferences();
+      final updated = prefs.copyWith(toggleCheckboxesInReadOnly: true);
+      expect(updated.toggleCheckboxesInReadOnly, isTrue);
+
+      final reset = updated.copyWith(toggleCheckboxesInReadOnly: false);
+      expect(reset.toggleCheckboxesInReadOnly, isFalse);
     });
   });
 }

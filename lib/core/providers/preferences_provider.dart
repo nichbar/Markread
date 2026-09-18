@@ -12,6 +12,7 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
   static const _keyTextAlignment = 'textAlignment';
   static const _keyFontFamily = 'fontFamily';
   static const _keyCodeFontFamily = 'codeFontFamily';
+  static const _keyToggleCheckboxesInReadOnly = 'toggleCheckboxesInReadOnly';
 
   // Removed preference keys (cleared on load so stale values do not linger).
   static const _legacyKeyReaderLightTheme = 'readerLightTheme';
@@ -58,6 +59,8 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
             : ReadingTextAlign.left;
     final fontFamily = prefs.getString(_keyFontFamily);
     final codeFontFamily = prefs.getString(_keyCodeFontFamily);
+    final toggleCheckboxesInReadOnly =
+        prefs.getBool(_keyToggleCheckboxesInReadOnly) ?? false;
 
     state = UserPreferences(
       appThemeMode: appThemeMode,
@@ -68,6 +71,7 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
       textAlignment: textAlignment,
       fontFamily: fontFamily,
       codeFontFamily: codeFontFamily,
+      toggleCheckboxesInReadOnly: toggleCheckboxesInReadOnly,
     );
   }
 
@@ -129,6 +133,12 @@ class PreferencesNotifier extends Notifier<UserPreferences> {
       await prefs.setString(_keyCodeFontFamily, trimmed);
       state = state.copyWith(codeFontFamily: trimmed);
     }
+  }
+
+  Future<void> setToggleCheckboxesInReadOnly(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyToggleCheckboxesInReadOnly, value);
+    state = state.copyWith(toggleCheckboxesInReadOnly: value);
   }
 }
 

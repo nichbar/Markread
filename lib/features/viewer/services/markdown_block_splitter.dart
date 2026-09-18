@@ -6,6 +6,8 @@
 /// [ListView.builder] can mount only the viewport.
 library;
 
+import 'markdown_checkbox_helper.dart';
+
 /// One virtualized markdown chunk with offsets into the (normalized) source.
 class MarkdownBlock {
   /// Exact substring of the normalized display content.
@@ -20,6 +22,9 @@ class MarkdownBlock {
   /// Global H1–H3 index matching [parseHeadings] order, if this block is one.
   final int? headingIndex;
 
+  /// Starting index of checkboxes in this block matching document-wide checkbox order.
+  final int checkboxStartIndex;
+
   /// Whether one or more blank lines preceded this block at the top level.
   ///
   /// Matches gpt_markdown's [NewLines] behavior: any `\n\n+` collapses to a
@@ -31,13 +36,15 @@ class MarkdownBlock {
     required this.startOffset,
     required this.endOffset,
     this.headingIndex,
+    this.checkboxStartIndex = 0,
     this.hasPrecedingParagraphBreak = false,
   });
 
   @override
   String toString() =>
       'MarkdownBlock(start=$startOffset, end=$endOffset, '
-      'headingIndex=$headingIndex, break=$hasPrecedingParagraphBreak, '
+      'headingIndex=$headingIndex, checkboxStartIndex=$checkboxStartIndex, '
+      'break=$hasPrecedingParagraphBreak, '
       'text=${text.length > 40 ? '${text.substring(0, 40)}…' : text})';
 }
 
@@ -65,6 +72,7 @@ List<MarkdownBlock> splitMarkdownBlocks(String input) {
 
   final blocks = <MarkdownBlock>[];
   var headingCounter = 0;
+  var checkboxCounter = 0;
   var i = 0;
   // Consecutive top-level blank lines before the next content block.
   // Leading blanks are ignored (matches GptMarkdown(...).trim()).
@@ -92,13 +100,15 @@ List<MarkdownBlock> splitMarkdownBlocks(String input) {
         j++;
       }
       if (j < lines.length) j++; // include closing fence
-      _emitRange(
+      checkboxCounter += _emitRange(
         blocks: blocks,
         lines: lines,
         text: text,
         from: i,
         toExclusive: j,
         headingIndex: null,
+        checkboxStartIndex: checkboxCounter,
+        isFence: true,
         hasPrecedingParagraphBreak: hasPrecedingBreak,
       );
       emittedAny = true;
@@ -112,13 +122,14 @@ List<MarkdownBlock> splitMarkdownBlocks(String input) {
       while (j < lines.length && _isQuoteLine(lines[j])) {
         j++;
       }
-      _emitRange(
+      checkboxCounter += _emitRange(
         blocks: blocks,
         lines: lines,
         text: text,
         from: i,
         toExclusive: j,
         headingIndex: null,
+        checkboxStartIndex: checkboxCounter,
         hasPrecedingParagraphBreak: hasPrecedingBreak,
       );
       emittedAny = true;
@@ -132,13 +143,14 @@ List<MarkdownBlock> splitMarkdownBlocks(String input) {
       while (j < lines.length && _isTableRow(lines[j])) {
         j++;
       }
-      _emitRange(
+      checkboxCounter += _emitRange(
         blocks: blocks,
         lines: lines,
         text: text,
         from: i,
         toExclusive: j,
         headingIndex: null,
+        checkboxStartIndex: checkboxCounter,
         hasPrecedingParagraphBreak: hasPrecedingBreak,
       );
       emittedAny = true;
@@ -156,13 +168,14 @@ List<MarkdownBlock> splitMarkdownBlocks(String input) {
         }
       }
       if (j < lines.length) j++; // include end line
-      _emitRange(
+      checkboxCounter += _emitRange(
         blocks: blocks,
         lines: lines,
         text: text,
         from: i,
         toExclusive: j,
         headingIndex: null,
+        checkboxStartIndex: checkboxCounter,
         hasPrecedingParagraphBreak: hasPrecedingBreak,
       );
       emittedAny = true;
@@ -174,13 +187,14 @@ List<MarkdownBlock> splitMarkdownBlocks(String input) {
     final headingIndex = _headingIndexIfAny(line, headingCounter);
     if (headingIndex != null) {
       headingCounter = headingIndex + 1;
-      _emitRange(
+      checkboxCounter += _emitRange(
         blocks: blocks,
         lines: lines,
         text: text,
         from: i,
         toExclusive: i + 1,
         headingIndex: headingIndex,
+        checkboxStartIndex: checkboxCounter,
         hasPrecedingParagraphBreak: hasPrecedingBreak,
       );
       emittedAny = true;
@@ -194,13 +208,14 @@ List<MarkdownBlock> splitMarkdownBlocks(String input) {
         _isHrLine(line) ||
         _isCheckboxLine(line) ||
         _isRadioLine(line)) {
-      _emitRange(
+      checkboxCounter += _emitRange(
         blocks: blocks,
         lines: lines,
         text: text,
         from: i,
         toExclusive: i + 1,
         headingIndex: null,
+        checkboxStartIndex: checkboxCounter,
         hasPrecedingParagraphBreak: hasPrecedingBreak,
       );
       emittedAny = true;
@@ -215,13 +230,14 @@ List<MarkdownBlock> splitMarkdownBlocks(String input) {
         !_isBlockStart(lines[j])) {
       j++;
     }
-    _emitRange(
+    checkboxCounter += _emitRange(
       blocks: blocks,
       lines: lines,
       text: text,
       from: i,
       toExclusive: j,
       headingIndex: null,
+      checkboxStartIndex: checkboxCounter,
       hasPrecedingParagraphBreak: hasPrecedingBreak,
     );
     emittedAny = true;
@@ -251,16 +267,18 @@ List<_Line> _splitLines(String text) {
   return lines;
 }
 
-void _emitRange({
+int _emitRange({
   required List<MarkdownBlock> blocks,
   required List<_Line> lines,
   required String text,
   required int from,
   required int toExclusive,
   required int? headingIndex,
+  required int checkboxStartIndex,
+  bool isFence = false,
   bool hasPrecedingParagraphBreak = false,
 }) {
-  if (from >= toExclusive || from < 0 || toExclusive > lines.length) return;
+  if (from >= toExclusive || from < 0 || toExclusive > lines.length) return 0;
   final start = lines[from].start;
   final end = lines[toExclusive - 1].endExclusive;
   // Prefer including a single trailing newline when present so chunk boundaries
@@ -268,16 +286,29 @@ void _emitRange({
   final endWithNl =
       end < text.length && text.codeUnitAt(end) == 0x0A ? end + 1 : end;
   final slice = text.substring(start, endWithNl);
-  if (slice.trim().isEmpty) return;
+  if (slice.trim().isEmpty) return 0;
+
+  var checkboxCount = 0;
+  if (!isFence) {
+    for (var k = from; k < toExclusive; k++) {
+      if (MarkdownCheckboxHelper.countCheckboxesInLines([lines[k].content]) >
+          0) {
+        checkboxCount++;
+      }
+    }
+  }
+
   blocks.add(
     MarkdownBlock(
       text: slice,
       startOffset: start,
       endOffset: endWithNl,
       headingIndex: headingIndex,
+      checkboxStartIndex: checkboxStartIndex,
       hasPrecedingParagraphBreak: hasPrecedingParagraphBreak,
     ),
   );
+  return checkboxCount;
 }
 
 bool _isBlockStart(_Line line) {
@@ -351,7 +382,7 @@ bool _isHrLine(_Line line) {
 
 bool _isCheckboxLine(_Line line) {
   // [x] / [ ] title
-  return RegExp(r'^\s*\[[ x]\]\s+\S').hasMatch(line.content);
+  return RegExp(r'^\s*\[[ xX]\]\s+\S').hasMatch(line.content);
 }
 
 bool _isRadioLine(_Line line) {

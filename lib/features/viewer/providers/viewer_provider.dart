@@ -214,6 +214,7 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
     final service = fileService ?? FileService();
     final filePath = current.filePath;
     final fileUri = current.fileUri;
+    final savedQuery = current.searchQuery;
 
     await service.saveFile(
       path: filePath,
@@ -236,6 +237,10 @@ class ViewerNotifier extends AsyncNotifier<ViewerState> {
             : current.viewMode,
       ),
     );
+
+    if (savedQuery.isNotEmpty) {
+      setSearchQuery(savedQuery);
+    }
 
     if ((filePath != null && filePath.isNotEmpty) ||
         (fileUri != null && fileUri.isNotEmpty)) {

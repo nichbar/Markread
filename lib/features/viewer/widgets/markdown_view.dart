@@ -5,6 +5,7 @@ import 'package:markread/third_party/gpt_markdown/gpt_markdown.dart';
 import '../../../core/models/user_preferences.dart';
 import '../providers/viewer_provider.dart';
 import '../services/markdown_block_splitter.dart';
+import '../services/markdown_checkbox_helper.dart';
 import 'blue_topaz_code_style.dart';
 import 'blue_topaz_markdown_theme.dart';
 import 'github_code_style.dart';
@@ -87,7 +88,11 @@ class MarkdownView extends StatefulWidget {
     this.searchQuery = '',
     this.markdownTheme = MarkdownTheme.github,
     this.renderMode = MarkdownRenderMode.auto,
+    this.onCheckboxToggled,
   });
+
+  /// Called when a task-list checkbox is toggled by the user in reader mode.
+  final void Function(int index, bool value)? onCheckboxToggled;
 
   @override
   State<MarkdownView> createState() => MarkdownViewState();
@@ -150,6 +155,9 @@ class MarkdownViewState extends State<MarkdownView> {
     }
 
     final contentChanged = oldWidget.content != widget.content;
+    final checkboxCallbackChanged =
+        (oldWidget.onCheckboxToggled == null) !=
+        (widget.onCheckboxToggled == null);
     final oldUseVirtualized = MarkdownView.shouldVirtualize(
       renderMode: oldWidget.renderMode,
       sourceByteLength: oldWidget.sourceByteLength,
@@ -157,6 +165,7 @@ class MarkdownViewState extends State<MarkdownView> {
     );
     final pathChanged = oldUseVirtualized != _useVirtualized;
     final layoutAffecting = contentChanged ||
+        checkboxCallbackChanged ||
         pathChanged ||
         oldWidget.fontScale != widget.fontScale ||
         oldWidget.fontSize != widget.fontSize ||
@@ -171,7 +180,10 @@ class MarkdownViewState extends State<MarkdownView> {
         oldWidget.markdownTheme != widget.markdownTheme ||
         oldWidget.renderMode != widget.renderMode;
 
-    if (contentChanged || keysChanged || pathChanged) {
+    if (contentChanged ||
+        keysChanged ||
+        pathChanged ||
+        checkboxCallbackChanged) {
       _rebuildBlocks();
     } else if (layoutAffecting && _useVirtualized) {
       _heightCache.invalidateEstimates(
@@ -190,6 +202,10 @@ class MarkdownViewState extends State<MarkdownView> {
     }
   }
 
+  String get _effectiveContent => widget.onCheckboxToggled != null
+      ? MarkdownCheckboxHelper.tagCheckboxes(widget.content)
+      : widget.content;
+
   void _rebuildBlocks() {
     if (!_useVirtualized) {
       // Monolith path: skip split / height cache cost.
@@ -205,7 +221,7 @@ class MarkdownViewState extends State<MarkdownView> {
       return;
     }
 
-    _blocks = splitMarkdownBlocks(widget.content);
+    _blocks = splitMarkdownBlocks(_effectiveContent);
     _heightCache = _BlockHeightCache(
       blocks: _blocks,
       fontSize: widget.fontSize * widget.fontScale,
@@ -886,6 +902,8 @@ class MarkdownViewState extends State<MarkdownView> {
                         block.text,
                         style: stableStyle,
                         onLinkTap: widget.onLinkTap,
+                        onCheckboxTap: widget.onCheckboxToggled,
+                        checkboxStartIndex: block.checkboxStartIndex,
                         selectable: false,
                         highlightBuilder: inlineCodeBuilder,
                         codeBuilder: fencedCodeBuilder,
@@ -921,9 +939,11 @@ class MarkdownViewState extends State<MarkdownView> {
               controller: widget.scrollController,
               padding: const EdgeInsets.all(16),
               child: GptMarkdown(
-                widget.content,
+                _effectiveContent,
                 style: stableStyle,
                 onLinkTap: widget.onLinkTap,
+                onCheckboxTap: widget.onCheckboxToggled,
+                checkboxStartIndex: 0,
                 selectable: false,
                 highlightBuilder: inlineCodeBuilder,
                 codeBuilder: fencedCodeBuilder,

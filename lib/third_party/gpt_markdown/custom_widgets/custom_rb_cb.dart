@@ -57,11 +57,13 @@ class CustomCb extends StatelessWidget {
     required this.child,
     this.textDirection = TextDirection.ltr,
     required this.value,
+    this.onChanged,
   });
   final Widget child;
   final bool value;
   final double spacing;
   final TextDirection textDirection;
+  final ValueChanged<bool?>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +82,7 @@ class CustomCb extends StatelessWidget {
                   start: spacing,
                   end: spacing,
                 ),
-                child: Checkbox(value: value, onChanged: (value) {}),
+                child: Checkbox(value: value, onChanged: onChanged),
               ),
             ),
           ),

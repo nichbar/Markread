@@ -50,5 +50,32 @@ void main() {
       expect(container.read(preferencesProvider).codeFontFamily, isNull);
       expect(prefs.getString('codeFontFamily'), isNull);
     });
+
+    test('updates toggleCheckboxesInReadOnly in state and shared preferences', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(preferencesProvider.notifier);
+      expect(
+        container.read(preferencesProvider).toggleCheckboxesInReadOnly,
+        isFalse,
+      );
+
+      await notifier.setToggleCheckboxesInReadOnly(true);
+      expect(
+        container.read(preferencesProvider).toggleCheckboxesInReadOnly,
+        isTrue,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('toggleCheckboxesInReadOnly'), isTrue);
+
+      await notifier.setToggleCheckboxesInReadOnly(false);
+      expect(
+        container.read(preferencesProvider).toggleCheckboxesInReadOnly,
+        isFalse,
+      );
+      expect(prefs.getBool('toggleCheckboxesInReadOnly'), isFalse);
+    });
   });
 }

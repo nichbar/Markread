@@ -142,6 +142,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             loading: () => const SizedBox.shrink(),
             error: (error, stackTrace) => const SizedBox.shrink(),
           ),
+          SwitchListTile(
+            title: const Text('Toggle checkboxes in reader'),
+            subtitle: const Text(
+              'Allow checking or unchecking task list items while reading and save to file',
+            ),
+            value: prefs.toggleCheckboxesInReadOnly,
+            onChanged: (v) => ref
+                .read(preferencesProvider.notifier)
+                .setToggleCheckboxesInReadOnly(v),
+          ),
 
           // -- Font Size --
           _SectionHeader(title: 'Font Size'),

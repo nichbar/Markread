@@ -56,6 +56,8 @@ class GptMarkdown extends StatelessWidget {
     this.components,
     this.inlineComponents,
     this.selectable = false,
+    this.onCheckboxTap,
+    this.checkboxStartIndex = 0,
   });
 
   /// The data to be displayed.
@@ -126,9 +128,18 @@ class GptMarkdown extends StatelessWidget {
   /// The list of inline components.
   final List<MarkdownComponent>? inlineComponents;
 
+  /// The callback function to handle checkbox toggle clicks.
+  final void Function(int index, bool value)? onCheckboxTap;
+
+  /// The starting checkbox index for this render pass.
+  final int checkboxStartIndex;
+
   @override
   Widget build(BuildContext context) {
     final text = data.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
+    final counter = onCheckboxTap != null
+        ? CheckboxIndexCounter(checkboxStartIndex)
+        : null;
     return ClipRRect(
       child: MdWidget(
         context,
@@ -157,6 +168,9 @@ class GptMarkdown extends StatelessWidget {
           inlineComponents: inlineComponents,
           tableBuilder: tableBuilder,
           selectable: selectable,
+          onCheckboxTap: onCheckboxTap,
+          checkboxStartIndex: checkboxStartIndex,
+          checkboxIndexCounter: counter,
         ),
       ),
     );

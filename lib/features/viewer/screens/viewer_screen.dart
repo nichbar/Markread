@@ -10,10 +10,12 @@ import '../../../core/models/user_preferences.dart';
 import '../../../core/providers/history_provider.dart';
 import '../../../core/providers/preferences_provider.dart';
 import '../../../core/providers/reading_progress_provider.dart';
+import '../../../core/services/file_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_layout_body.dart';
 import '../../../core/widgets/platform_benchmark_hud.dart';
 import '../providers/viewer_provider.dart';
+import '../services/markdown_checkbox_helper.dart';
 import '../widgets/markdown_view.dart';
 import '../widgets/reader_theme.dart';
 import '../widgets/reading_progress_badge.dart';
@@ -74,6 +76,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
     _scrollController = ScrollController();
     _scrollController.addListener(_onScrollTick);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      SystemChrome.setApplicationSwitcherDescription(
+        ApplicationSwitcherDescription(
+          label: '${widget.fileName} - Markread',
+        ),
+      );
       // Handle already-loaded state (listen does not fire for current value).
       final state = ref.read(viewerProvider).value;
       if (state != null) {
@@ -1256,7 +1263,45 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen>
       searchQuery: state.searchQuery,
       markdownTheme: preferences.markdownTheme,
       renderMode: preferences.markdownRenderMode,
+      onCheckboxToggled: preferences.toggleCheckboxesInReadOnly
+          ? _handleCheckboxToggle
+          : null,
     );
+  }
+
+  Future<void> _handleCheckboxToggle(int index, bool newValue) async {
+    final state = ref.read(viewerProvider).value;
+    if (state == null) return;
+
+    final updatedContent = MarkdownCheckboxHelper.toggleCheckbox(
+      state.fileContent,
+      targetIndex: index,
+      newValue: newValue,
+    );
+
+    if (updatedContent == state.fileContent) {
+      return;
+    }
+
+    try {
+      await ref.read(viewerProvider.notifier).saveContent(updatedContent);
+    } on ReadOnlyFileException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot toggle checkbox: file is read-only.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save file: $e'),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _onLinkTap(String url, String title) async {

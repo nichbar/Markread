@@ -47,14 +47,6 @@ class _MdWidgetState extends State<MdWidget> {
   @override
   void initState() {
     super.initState();
-    // Theme/inherited widgets are safe after the first frame of dependencies;
-    // generate here and refresh in didChangeDependencies when theme shifts.
-    list = MarkdownComponent.generate(
-      widget.context,
-      widget.exp,
-      widget.config,
-      widget.includeGlobalComponents,
-    );
   }
 
   @override

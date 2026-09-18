@@ -23,6 +23,7 @@ class UserPreferences {
   final ReadingTextAlign textAlignment;
   final String? fontFamily;
   final String? codeFontFamily;
+  final bool toggleCheckboxesInReadOnly;
 
   const UserPreferences({
     this.appThemeMode = AppThemeMode.system,
@@ -33,6 +34,7 @@ class UserPreferences {
     this.textAlignment = ReadingTextAlign.left,
     this.fontFamily,
     this.codeFontFamily,
+    this.toggleCheckboxesInReadOnly = false,
   });
 
   UserPreferences copyWith({
@@ -46,6 +48,7 @@ class UserPreferences {
     bool clearFontFamily = false,
     String? codeFontFamily,
     bool clearCodeFontFamily = false,
+    bool? toggleCheckboxesInReadOnly,
   }) {
     return UserPreferences(
       appThemeMode: appThemeMode ?? this.appThemeMode,
@@ -57,6 +60,8 @@ class UserPreferences {
       fontFamily: clearFontFamily ? null : (fontFamily ?? this.fontFamily),
       codeFontFamily:
           clearCodeFontFamily ? null : (codeFontFamily ?? this.codeFontFamily),
+      toggleCheckboxesInReadOnly:
+          toggleCheckboxesInReadOnly ?? this.toggleCheckboxesInReadOnly,
     );
   }
 }
