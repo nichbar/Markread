@@ -281,7 +281,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     fontWeight: FontWeight.w600,
                   ),
             ),
-            subtitle: const Text('A minimal, read-only Markdown reader.'),
+            subtitle: const Text('A minimal, read-focused Markdown reader.'),
           ),
           ListTile(
             title: const Text('Version'),
