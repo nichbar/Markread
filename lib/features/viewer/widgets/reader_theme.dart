@@ -1,5 +1,5 @@
 // lib/features/viewer/widgets/reader_theme.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../../core/theme/app_theme.dart';
 
 class ReaderColors {

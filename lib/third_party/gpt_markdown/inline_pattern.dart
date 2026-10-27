@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'custom_widgets/markdown_config.dart';
 import 'markdown_component.dart';
 

@@ -1,5 +1,5 @@
 // test/features/viewer/checkbox_interaction_test.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markread/core/models/user_preferences.dart';
 import 'package:markread/features/viewer/widgets/markdown_view.dart';

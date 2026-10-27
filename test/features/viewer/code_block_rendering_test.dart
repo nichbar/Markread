@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markread/features/viewer/widgets/github_code_style.dart';
 import 'package:markread/features/viewer/widgets/source_code_view.dart';

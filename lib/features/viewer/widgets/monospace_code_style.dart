@@ -1,5 +1,5 @@
 // lib/features/viewer/widgets/monospace_code_style.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'search_code_highlight.dart';
 

@@ -49,3 +49,6 @@ app.*.map.json
 # Android signing
 /android/key.properties
 /android/app/*.jks
+
+# Agent harness
+.pi/

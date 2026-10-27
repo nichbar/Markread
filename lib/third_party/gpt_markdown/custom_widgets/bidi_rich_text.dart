@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// RichText wrapper that handles text directionality and bidi embedding cleanly.
 class BidiRichText extends StatelessWidget {

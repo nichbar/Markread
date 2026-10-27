@@ -3,8 +3,8 @@
 import 'dart:ui' show FramePhase, FrameTiming;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'process_memory_stub.dart'
     if (dart.library.io) 'process_memory_io.dart' as process_memory;

@@ -1,6 +1,6 @@
 // lib/features/viewer/widgets/zoomable_area.dart
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Detects pinch-to-zoom gestures without competing with inner scroll views.
 ///

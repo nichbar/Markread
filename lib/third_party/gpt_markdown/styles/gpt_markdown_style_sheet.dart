@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'block_quote_style.dart';
 import 'checkbox_style.dart';

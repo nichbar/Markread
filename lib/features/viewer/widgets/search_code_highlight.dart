@@ -1,5 +1,5 @@
 // lib/features/viewer/widgets/search_code_highlight.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Provides the active search query to nested code widgets so they can paint
 /// match backgrounds without injecting markers into markdown source.

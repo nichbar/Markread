@@ -1,5 +1,5 @@
 // lib/features/viewer/widgets/markdown_view.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:markread/third_party/gpt_markdown/gpt_markdown.dart';
 import '../../../core/models/user_preferences.dart';
@@ -1069,11 +1069,9 @@ class _BlockHeightCache {
 
   _BlockHeightCache({
     required List<MarkdownBlock> blocks,
-    required double fontSize,
-    required double lineHeight,
-  })  : _blocks = blocks,
-        _fontSize = fontSize,
-        _lineHeight = lineHeight {
+    required this._fontSize,
+    required this._lineHeight,
+  })  : _blocks = blocks {
     _heights = List<double>.generate(
       blocks.length,
       (i) => _estimate(blocks[i]),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Widget that renders inline code with styling.
 class InlineCode extends StatelessWidget {

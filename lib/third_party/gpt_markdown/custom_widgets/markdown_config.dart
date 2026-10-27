@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../markdown_component.dart';
 import '../styles/gpt_markdown_style_sheet.dart';

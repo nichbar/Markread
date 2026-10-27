@@ -1,5 +1,5 @@
 // lib/features/viewer/widgets/markdown_anchors.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:markread/third_party/gpt_markdown/custom_widgets/markdown_config.dart';
 import 'package:markread/third_party/gpt_markdown/markdown_component.dart';
 

@@ -1,5 +1,5 @@
 // lib/features/viewer/widgets/search_bar.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'reader_theme.dart';
 
 class ViewerSearchBar extends StatefulWidget {

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A custom widget that displays an unordered list of items.
 ///
@@ -85,11 +85,11 @@ class OrderedListView extends StatelessWidget {
     super.key,
     this.spacing = 6,
     this.padding = 6,
-    TextStyle? style,
+    this._style,
     required this.child,
     this.textDirection = TextDirection.ltr,
     required this.no,
-  }) : _style = style;
+  });
 
   /// The style of the text.
   final TextStyle? _style;

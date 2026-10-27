@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'autolink.dart';
@@ -56,7 +56,7 @@ abstract class MarkdownComponent {
   static List<InlineSpan> generate(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
     bool includeGlobalComponents,
   ) {
     var components =
@@ -108,7 +108,7 @@ abstract class MarkdownComponent {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   );
 
   RegExp get exp;
@@ -124,7 +124,7 @@ abstract class InlineMd extends MarkdownComponent {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   );
 }
 
@@ -143,7 +143,7 @@ abstract class BlockMd extends MarkdownComponent {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var matches = RegExp(r'^(?<spaces>\ \ +).*').firstMatch(text);
     var spaces = matches?.namedGroup('spaces');
@@ -171,7 +171,7 @@ abstract class BlockMd extends MarkdownComponent {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   );
 }
 
@@ -183,7 +183,7 @@ class IndentMd extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = this.exp.firstMatch(text);
     var conf = config.copyWith();
@@ -218,7 +218,7 @@ class HTag extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var theme = GptMarkdownTheme.of(context);
     var match = this.exp.firstMatch(text.trim());
@@ -285,7 +285,7 @@ class NewLines extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     return TextSpan(
       text: "\n\n",
@@ -306,7 +306,7 @@ class HrLine extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     final gptTheme = GptMarkdownTheme.of(context);
     final hrStyle = config.styleSheet?.hrStyle;
@@ -330,7 +330,7 @@ class CheckBoxMd extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = this.exp.firstMatch(text.trim());
     final tagIndexStr = match?[1];
@@ -364,7 +364,7 @@ class RadioButtonMd extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = this.exp.firstMatch(text.trim());
     return CustomRb(
@@ -391,7 +391,7 @@ class BlockQuote extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = exp.firstMatch(text);
     var dataBuilder = StringBuffer();
@@ -453,7 +453,7 @@ class UnOrderedList extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = this.exp.firstMatch(text);
     final listStyle = config.styleSheet?.listStyle;
@@ -490,7 +490,7 @@ class OrderedList extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = this.exp.firstMatch(text);
     final listStyle = config.styleSheet?.listStyle;
@@ -526,7 +526,7 @@ class HighlightedText extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = exp.firstMatch(text.trim());
     var highlightedText = match?[1] ?? "";
@@ -578,7 +578,7 @@ class BoldMd extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = exp.firstMatch(text.trim());
     var conf = config.copyWith(
@@ -606,7 +606,7 @@ class StrikeMd extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = exp.firstMatch(text.trim());
     var conf = config.copyWith(
@@ -640,7 +640,7 @@ class ItalicMd extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = exp.firstMatch(text.trim());
     var data = match?[1] ?? match?[2];
@@ -668,7 +668,7 @@ class LatexMathMultiLine extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     final match = exp.firstMatch(text.trim());
     final mathText = match?[1] ?? '';
@@ -697,7 +697,7 @@ class LatexMath extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     final match = exp.firstMatch(text.trim());
     final mathText = match?[1] ?? '';
@@ -726,7 +726,7 @@ class SourceTag extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = exp.firstMatch(text.trim());
     var content = match?[1];
@@ -774,7 +774,7 @@ class ATagMd extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var bracketCount = 0;
     var start = 1;
@@ -922,7 +922,7 @@ class ImageMd extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     // First try to find the basic pattern
     final basicMatch = RegExp(r'\!\[([^\[\]]*)\]\(').firstMatch(text.trim());
@@ -1205,7 +1205,7 @@ class TableMd extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     final List<Map<int, String>> value =
         text
@@ -1398,7 +1398,7 @@ class CodeBlockMd extends BlockMd {
   Widget build(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = this.exp.firstMatch(text);
     String name = match?[1] ?? "";
@@ -1420,7 +1420,7 @@ class UnderLineMd extends InlineMd {
   InlineSpan span(
     BuildContext context,
     String text,
-    final GptMarkdownConfig config,
+    GptMarkdownConfig config,
   ) {
     var match = exp.firstMatch(text.trim());
     var conf = config.copyWith(

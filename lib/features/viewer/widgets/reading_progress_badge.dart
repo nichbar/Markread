@@ -1,5 +1,5 @@
 // lib/features/viewer/widgets/reading_progress_badge.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'reader_theme.dart';
 
 /// Semi-transparent percentage pill shown while the reader is scrolling.

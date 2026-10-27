@@ -1,5 +1,5 @@
 // lib/features/home/widgets/history_item_tile.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../../core/models/history_item.dart';
 
 class HistoryItemTile extends StatelessWidget {

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markread/core/models/user_preferences.dart';
 import 'package:markread/features/viewer/services/markdown_checkbox_helper.dart';

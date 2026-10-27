@@ -1,5 +1,5 @@
 // lib/features/viewer/widgets/source_code_view.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:markread/third_party/gpt_markdown/gpt_markdown.dart';
 import 'github_code_style.dart';
 import 'search_code_highlight.dart';

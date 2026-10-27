@@ -1,7 +1,7 @@
 // lib/app.dart
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 import 'core/models/user_preferences.dart';
 import 'core/providers/preferences_provider.dart';
 import 'core/providers/system_fonts_provider.dart';
@@ -75,6 +75,10 @@ class MarkreadApp extends ConsumerWidget {
         AppThemeMode.system => ThemeMode.system,
       },
       routerConfig: router,
+      builder: (context, child) {
+        // ignore: deprecated_member_use
+        return MaterialUiCompatibilityBridge(child: child!);
+      },
     );
   }
 }
