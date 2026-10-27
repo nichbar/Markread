@@ -1,14 +1,17 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'alert_style.dart';
 import 'block_quote_style.dart';
 import 'checkbox_style.dart';
 import 'code_block_style.dart';
 import 'heading_style.dart';
+import 'highlight_style.dart';
 import 'hr_style.dart';
 import 'image_style.dart';
 import 'latex_style.dart';
 import 'link_style.dart';
 import 'list_style.dart';
+import 'script_style.dart';
 import 'source_tag_style.dart';
 import 'style_lerp.dart';
 import 'table_style.dart';
@@ -50,6 +53,10 @@ class GptMarkdownStyleSheet {
     this.sourceTagStyle,
     this.textScaleFactor,
     this.textAlign,
+    this.alert,
+    this.highlight,
+    this.script,
+    this.blockSpacing,
   });
 
   final TextStyle? h1;
@@ -88,6 +95,11 @@ class GptMarkdownStyleSheet {
 
   final double? textScaleFactor;
   final TextAlign? textAlign;
+
+  final AlertStyle? alert;
+  final HighlightStyle? highlight;
+  final ScriptStyle? script;
+  final double? blockSpacing;
 
   /// Creates a style sheet from a Flutter [ThemeData].
   factory GptMarkdownStyleSheet.fromTheme(ThemeData theme) {
@@ -197,6 +209,10 @@ class GptMarkdownStyleSheet {
     SourceTagStyle? sourceTagStyle,
     double? textScaleFactor,
     TextAlign? textAlign,
+    AlertStyle? alert,
+    HighlightStyle? highlight,
+    ScriptStyle? script,
+    double? blockSpacing,
   }) {
     return GptMarkdownStyleSheet(
       h1: h1 ?? this.h1,
@@ -233,6 +249,10 @@ class GptMarkdownStyleSheet {
       sourceTagStyle: sourceTagStyle ?? this.sourceTagStyle,
       textScaleFactor: textScaleFactor ?? this.textScaleFactor,
       textAlign: textAlign ?? this.textAlign,
+      alert: alert ?? this.alert,
+      highlight: highlight ?? this.highlight,
+      script: script ?? this.script,
+      blockSpacing: blockSpacing ?? this.blockSpacing,
     );
   }
 
@@ -273,6 +293,10 @@ class GptMarkdownStyleSheet {
       sourceTagStyle: other.sourceTagStyle ?? sourceTagStyle,
       textScaleFactor: other.textScaleFactor ?? textScaleFactor,
       textAlign: other.textAlign ?? textAlign,
+      alert: alert?.merge(other.alert) ?? other.alert,
+      highlight: highlight?.merge(other.highlight) ?? other.highlight,
+      script: script?.merge(other.script) ?? other.script,
+      blockSpacing: other.blockSpacing ?? blockSpacing,
     );
   }
 
@@ -319,6 +343,10 @@ class GptMarkdownStyleSheet {
           ? (a!.textScaleFactor! + (b!.textScaleFactor! - a.textScaleFactor!) * t)
           : (t < 0.5 ? a?.textScaleFactor : b?.textScaleFactor),
       textAlign: t < 0.5 ? a?.textAlign : b?.textAlign,
+      alert: AlertStyle.lerp(a?.alert, b?.alert, t),
+      highlight: HighlightStyle.lerp(a?.highlight, b?.highlight, t),
+      script: ScriptStyle.lerp(a?.script, b?.script, t),
+      blockSpacing: lerpDouble(a?.blockSpacing, b?.blockSpacing, t),
     );
   }
 
@@ -360,7 +388,11 @@ class GptMarkdownStyleSheet {
           latexStyle == other.latexStyle &&
           sourceTagStyle == other.sourceTagStyle &&
           textScaleFactor == other.textScaleFactor &&
-          textAlign == other.textAlign;
+          textAlign == other.textAlign &&
+          alert == other.alert &&
+          highlight == other.highlight &&
+          script == other.script &&
+          blockSpacing == other.blockSpacing;
 
   @override
   int get hashCode => Object.hashAll([
@@ -398,5 +430,9 @@ class GptMarkdownStyleSheet {
         sourceTagStyle,
         textScaleFactor,
         textAlign,
+        alert,
+        highlight,
+        script,
+        blockSpacing,
       ]);
 }

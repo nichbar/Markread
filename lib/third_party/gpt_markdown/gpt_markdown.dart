@@ -7,24 +7,29 @@ import 'styles/gpt_markdown_style_sheet.dart';
 
 export 'autolink.dart';
 export 'custom_widgets/bidi_rich_text.dart';
+export 'custom_widgets/custom_divider.dart';
 export 'custom_widgets/inline_code.dart';
 export 'custom_widgets/markdown_config.dart';
 export 'custom_widgets/selectable_adapter.dart';
+export 'custom_widgets/sliver_gpt_markdown.dart';
 export 'inline_pattern.dart';
 export 'markdown_component.dart';
 export 'streaming/reveal_engine.dart';
 export 'streaming/stream_split.dart';
 export 'streaming/streaming_markdown.dart';
+export 'styles/alert_style.dart';
 export 'styles/block_quote_style.dart';
 export 'styles/checkbox_style.dart';
 export 'styles/code_block_style.dart';
 export 'styles/gpt_markdown_style_sheet.dart';
 export 'styles/heading_style.dart';
+export 'styles/highlight_style.dart';
 export 'styles/hr_style.dart';
 export 'styles/image_style.dart';
 export 'styles/latex_style.dart';
 export 'styles/link_style.dart';
 export 'styles/list_style.dart';
+export 'styles/script_style.dart';
 export 'styles/source_tag_style.dart';
 export 'styles/table_style.dart';
 export 'theme.dart';
@@ -48,6 +53,7 @@ class GptMarkdown extends StatelessWidget {
     this.highlightBuilder,
     this.linkBuilder,
     this.latexBuilder,
+    this.alertBuilder,
     this.maxLines,
     this.overflow,
     this.orderedListBuilder,
@@ -110,6 +116,9 @@ class GptMarkdown extends StatelessWidget {
   /// The latex math builder.
   final LatexBuilder? latexBuilder;
 
+  /// The GitHub alert builder.
+  final AlertBuilder? alertBuilder;
+
   /// The ordered list builder.
   final OrderedListBuilder? orderedListBuilder;
 
@@ -162,6 +171,7 @@ class GptMarkdown extends StatelessWidget {
           linkBuilder: linkBuilder,
           imageBuilder: imageBuilder,
           latexBuilder: latexBuilder,
+          alertBuilder: alertBuilder,
           orderedListBuilder: orderedListBuilder,
           unOrderedListBuilder: unOrderedListBuilder,
           components: components,

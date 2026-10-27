@@ -5,6 +5,37 @@ import '../styles/gpt_markdown_style_sheet.dart';
 import 'bidi_rich_text.dart';
 import 'selectable_adapter.dart';
 
+/// A builder function for markdown alerts (e.g. `[!NOTE]`).
+typedef AlertBuilder =
+    Widget Function(BuildContext context, AlertBuildDetails details);
+
+/// Details passed to [AlertBuilder].
+final class AlertBuildDetails {
+  AlertBuildDetails({
+    required this.context,
+    required this.config,
+    required this.type,
+    required this.style,
+    required this.title,
+    required this.content,
+    required this.buildDefault,
+    required this.buildQuote,
+  });
+
+  final BuildContext context;
+  final GptMarkdownConfig config;
+  final MarkdownAlertType type;
+  final AlertStyle style;
+  final Widget title;
+  final Widget content;
+
+  final Widget Function() buildDefault;
+  final Widget Function() buildQuote;
+
+  Widget defaultAlert() => buildDefault();
+  Widget asBlockQuote() => buildQuote();
+}
+
 /// A builder function for the ordered list.
 typedef OrderedListBuilder =
     Widget Function(
@@ -123,6 +154,7 @@ class GptMarkdownConfig {
     this.onCheckboxTap,
     this.checkboxStartIndex = 0,
     this.checkboxIndexCounter,
+    this.alertBuilder,
   });
 
   /// The direction of the text.
@@ -200,6 +232,9 @@ class GptMarkdownConfig {
   /// Mutable counter shared across recursive MdWidget passes during a build.
   final CheckboxIndexCounter? checkboxIndexCounter;
 
+  /// Custom builder for GitHub alert callouts.
+  final AlertBuilder? alertBuilder;
+
   /// A copy of the configuration with the specified parameters.
   GptMarkdownConfig copyWith({
     TextStyle? style,
@@ -227,6 +262,7 @@ class GptMarkdownConfig {
     void Function(int index, bool value)? onCheckboxTap,
     int? checkboxStartIndex,
     CheckboxIndexCounter? checkboxIndexCounter,
+    AlertBuilder? alertBuilder,
   }) {
     return GptMarkdownConfig(
       style: style ?? this.style,
@@ -254,6 +290,7 @@ class GptMarkdownConfig {
       onCheckboxTap: onCheckboxTap ?? this.onCheckboxTap,
       checkboxStartIndex: checkboxStartIndex ?? this.checkboxStartIndex,
       checkboxIndexCounter: checkboxIndexCounter ?? this.checkboxIndexCounter,
+      alertBuilder: alertBuilder ?? this.alertBuilder,
     );
   }
 
@@ -301,6 +338,7 @@ class GptMarkdownConfig {
         orderedListBuilder == other.orderedListBuilder &&
         unOrderedListBuilder == other.unOrderedListBuilder &&
         onCheckboxTap == other.onCheckboxTap &&
-        checkboxStartIndex == other.checkboxStartIndex;
+        checkboxStartIndex == other.checkboxStartIndex &&
+        alertBuilder == other.alertBuilder;
   }
 }

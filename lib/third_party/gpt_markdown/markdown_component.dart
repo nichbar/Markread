@@ -8,6 +8,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'autolink.dart';
 
 export 'autolink.dart';
+import 'styles/alert_style.dart';
+import 'styles/highlight_style.dart';
+import 'styles/script_style.dart';
+
+export 'styles/alert_style.dart';
+export 'styles/highlight_style.dart';
+export 'styles/script_style.dart';
 import 'custom_widgets/code_field.dart';
 import 'custom_widgets/custom_divider.dart';
 import 'custom_widgets/custom_error_image.dart';
@@ -26,6 +33,7 @@ abstract class MarkdownComponent {
     CodeBlockMd(),
     LatexMathMultiLine(),
     NewLines(),
+    MdAlert(),
     BlockQuote(),
     TableMd(),
     HTag(),
@@ -35,6 +43,7 @@ abstract class MarkdownComponent {
     CheckBoxMd(),
     HrLine(),
     IndentMd(),
+    MdFootnoteDef(),
   ];
 
   static List<MarkdownComponent> get inlineComponents => [
@@ -48,6 +57,10 @@ abstract class MarkdownComponent {
     UnderLineMd(),
     LatexMath(),
     LatexMathMultiLine(),
+    MdHighlight(),
+    MdSuperscript(),
+    MdSubscript(),
+    MdFootnoteRef(),
     HighlightedText(),
     SourceTag(),
   ];
@@ -213,7 +226,8 @@ class IndentMd extends BlockMd {
 /// Heading component
 class HTag extends BlockMd {
   @override
-  String get expString => (r"(?<hash>#{1,6})\ (?<data>[^\n]+?)$");
+  String get expString =>
+      r"(?:(?<hash>#{1,6})\ (?<data>[^\n]+?)|(?<setext_data>[^#\n\-\*\s][^\n]*?)\n(?<setext_underline>=+|-+))$";
   @override
   Widget build(
     BuildContext context,
@@ -222,7 +236,12 @@ class HTag extends BlockMd {
   ) {
     var theme = GptMarkdownTheme.of(context);
     var match = this.exp.firstMatch(text.trim());
-    final level = (match?[1]?.length ?? 1) - 1;
+    final setextUnderline = match?.namedGroup('setext_underline');
+    final headingData =
+        match?.namedGroup('data') ?? match?.namedGroup('setext_data') ?? '';
+    final level = setextUnderline != null
+        ? (setextUnderline.startsWith('=') ? 0 : 1)
+        : ((match?.namedGroup('hash')?.length ?? 1) - 1);
     final clampedLevel = level.clamp(0, 5);
 
     final sheetHeadings = [
@@ -249,17 +268,20 @@ class HTag extends BlockMd {
       color: headingStyle.color ?? config.style?.color,
     );
     var conf = config.copyWith(style: mergedStyle);
+    final isH1 = setextUnderline != null
+        ? setextUnderline.startsWith('=')
+        : match?.namedGroup('hash')?.length == 1;
+
     return config.getRich(
       TextSpan(
         children: [
           ...(MarkdownComponent.generate(
             context,
-            "${match?.namedGroup('data')}",
+            headingData,
             conf,
             false,
           )),
-          if (match?.namedGroup('hash')?.length == 1 &&
-              theme.autoAddDividerLineAfterH1) ...[
+          if (isH1 && theme.autoAddDividerLineAfterH1) ...[
             const TextSpan(
               text: "\n ",
               style: TextStyle(fontSize: 0, height: 0),
@@ -413,6 +435,145 @@ class BlockQuote extends InlineMd {
       config.styleSheet?.blockQuote ?? bqStyle?.textStyle,
     );
     final conf = config.copyWith(style: mergedTextStyle);
+
+    final newline = data.indexOf('\n');
+    final firstLine = newline == -1 ? data : data.substring(0, newline);
+    final alertType = MarkdownAlertType.fromMarker(firstLine.trim());
+
+    if (alertType != null) {
+      final body = newline == -1 ? '' : data.substring(newline + 1).trim();
+      final sheet = config.styleSheet?.alert ?? const AlertStyle();
+      final style = sheet.resolve(alertType, Theme.of(context).colorScheme);
+      final alertConf = config.copyWith(
+        style: (config.style ?? const TextStyle()).merge(style.textStyle),
+      );
+      final bodySpan = TextSpan(
+        children: MarkdownComponent.generate(context, body, alertConf, true),
+      );
+      final content = config.getRich(bodySpan);
+      final hasTitle = (style.title ?? '').isNotEmpty || (style.showIcon ?? true);
+      final fontSize = (config.style?.fontSize ??
+          DefaultTextStyle.of(context).style.fontSize ??
+          14);
+      final titleStyle = (config.style ?? const TextStyle()).copyWith(
+        color: style.color,
+        fontWeight: FontWeight.w600,
+      ).merge(style.titleStyle);
+
+      final titleWidget = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (style.showIcon ?? true) ...[
+            Icon(
+              style.icon,
+              size: style.iconSize ?? fontSize * 1.15,
+              color: style.color,
+            ),
+            SizedBox(
+              width: (style.title ?? '').isEmpty ? 0 : fontSize * 0.4,
+            ),
+          ],
+          if ((style.title ?? '').isNotEmpty)
+            Text(style.title!, style: titleStyle),
+        ],
+      );
+
+      Widget defaultQuote() {
+        return Directionality(
+          textDirection: config.textDirection,
+          child: Padding(
+            padding: (bqStyle?.margin as EdgeInsets?) ??
+                const EdgeInsets.symmetric(vertical: 2),
+            child: BlockQuoteWidget(
+              color: bqStyle?.border?.left.color ??
+                  DefaultTextStyle.of(context).style.color?.withAlpha(77) ??
+                  config.style?.color?.withAlpha(77) ??
+                  Colors.grey,
+              direction: config.textDirection,
+              width: bqStyle?.border?.left.width ?? 3,
+              child: Padding(
+                padding: bqStyle?.padding ??
+                    const EdgeInsetsDirectional.only(start: 8.0),
+                child: config.getRich(
+                  TextSpan(
+                    children: MarkdownComponent.generate(
+                      context,
+                      data,
+                      conf,
+                      true,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      Widget defaultAlertWidget() {
+        Widget column = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasTitle) ...[
+              titleWidget,
+              SizedBox(height: style.titleGap ?? 4),
+            ],
+            content,
+          ],
+        );
+        if (style.padding != null) {
+          column = Padding(padding: style.padding!, child: column);
+        }
+        Widget boxed = BlockQuoteWidget(
+          color: style.color ?? Colors.blue,
+          direction: config.textDirection,
+          width: style.barWidth ?? 3,
+          child: column,
+        );
+        if (style.backgroundColor != null && style.backgroundColor!.a > 0) {
+          boxed = ColoredBox(color: style.backgroundColor!, child: boxed);
+        }
+        final radius = style.borderRadius;
+        if (radius != null && radius != Radius.zero) {
+          boxed = ClipRRect(
+            borderRadius: BorderRadius.all(radius),
+            child: boxed,
+          );
+        }
+        if (style.margin != null) {
+          boxed = Padding(padding: style.margin!, child: boxed);
+        }
+        return Directionality(
+          textDirection: config.textDirection,
+          child: boxed,
+        );
+      }
+
+      late final AlertBuildDetails details;
+      details = AlertBuildDetails(
+        context: context,
+        config: config,
+        type: alertType,
+        style: style,
+        title: titleWidget,
+        content: content,
+        buildDefault: defaultAlertWidget,
+        buildQuote: defaultQuote,
+      );
+
+      final alertWidget =
+          config.alertBuilder?.call(context, details) ?? details.defaultAlert();
+
+      return TextSpan(
+        children: [
+          WidgetSpan(
+            child: alertWidget,
+          ),
+        ],
+      );
+    }
+
     var child = TextSpan(
       children: MarkdownComponent.generate(context, data, conf, true),
     );
@@ -656,6 +817,274 @@ class ItalicMd extends InlineMd {
   }
 }
 
+/// Highlighted text component (==highlight== or <mark>highlight</mark>)
+class MdHighlight extends InlineMd {
+  @override
+  RegExp get exp => RegExp(
+        r"(?:==(?<t1>[^\s=](?:.*?)[^\s=]?)==|<mark>(?<t2>.*?)</mark>)",
+        dotAll: true,
+      );
+
+  @override
+  InlineSpan span(
+    BuildContext context,
+    String text,
+    GptMarkdownConfig config,
+  ) {
+    final match = exp.firstMatch(text.trim());
+    final inner = match?.namedGroup('t1') ?? match?.namedGroup('t2') ?? '';
+    final highlight = (config.styleSheet?.highlight ?? const HighlightStyle())
+        .resolve(Theme.of(context).colorScheme);
+    final conf = config.copyWith(
+      style: (config.style ?? const TextStyle()).copyWith(
+        backgroundColor: highlight.backgroundColor,
+        color: highlight.color,
+      ),
+    );
+    return TextSpan(
+      children: MarkdownComponent.generate(context, inner, conf, false),
+      style: conf.style,
+    );
+  }
+}
+
+/// Superscript component (^sup^ or <sup>sup</sup>)
+class MdSuperscript extends InlineMd {
+  @override
+  RegExp get exp => RegExp(
+        r"(?:(?<!\^)\^(?!\^)(?<t1>[^\s\^](?:.*?)[^\s\^]?)(?<!\^)\^(?!\^)|<sup>(?<t2>.*?)</sup>)",
+        dotAll: true,
+      );
+
+  @override
+  InlineSpan span(
+    BuildContext context,
+    String text,
+    GptMarkdownConfig config,
+  ) {
+    final match = exp.firstMatch(text.trim());
+    final inner = match?.namedGroup('t1') ?? match?.namedGroup('t2') ?? '';
+    final script = config.styleSheet?.script ?? const ScriptStyle();
+    final style = config.style ?? const TextStyle();
+    final conf = config.copyWith(
+      style: style.copyWith(
+        fontSize: (style.fontSize ?? 14) * (script.scale ?? ScriptStyle.defaultScale),
+        color: script.color ?? style.color,
+      ).merge(config.styleSheet?.sup),
+    );
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.top,
+      child: config.getRich(
+        TextSpan(
+          children: MarkdownComponent.generate(context, inner, conf, false),
+          style: conf.style,
+        ),
+      ),
+    );
+  }
+}
+
+/// Subscript component (~sub~ or <sub>sub</sub>)
+class MdSubscript extends InlineMd {
+  @override
+  RegExp get exp => RegExp(
+        r"(?:(?<!\~)\~(?!\~)(?<t1>[^\s~](?:.*?)[^\s~]?)(?<!\~)\~(?!\~)|<sub>(?<t2>.*?)</sub>)",
+        dotAll: true,
+      );
+
+  @override
+  InlineSpan span(
+    BuildContext context,
+    String text,
+    GptMarkdownConfig config,
+  ) {
+    final match = exp.firstMatch(text.trim());
+    final inner = match?.namedGroup('t1') ?? match?.namedGroup('t2') ?? '';
+    final script = config.styleSheet?.script ?? const ScriptStyle();
+    final style = config.style ?? const TextStyle();
+    final conf = config.copyWith(
+      style: style.copyWith(
+        fontSize: (style.fontSize ?? 14) * (script.scale ?? ScriptStyle.defaultScale),
+        color: script.color ?? style.color,
+      ).merge(config.styleSheet?.sub),
+    );
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.bottom,
+      child: config.getRich(
+        TextSpan(
+          children: MarkdownComponent.generate(context, inner, conf, false),
+          style: conf.style,
+        ),
+      ),
+    );
+  }
+}
+
+/// Footnote reference component ([^label])
+class MdFootnoteRef extends InlineMd {
+  @override
+  RegExp get exp => RegExp(r"\[\^([^\]]+)\](?!\:)");
+
+  @override
+  InlineSpan span(
+    BuildContext context,
+    String text,
+    GptMarkdownConfig config,
+  ) {
+    final match = exp.firstMatch(text.trim());
+    final label = match?[1] ?? '';
+    final style = config.style ?? const TextStyle();
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.top,
+      child: Text(
+        '[$label]',
+        style: style.copyWith(
+          fontSize: (style.fontSize ?? 14) * 0.75,
+          color: primaryColor,
+          fontWeight: FontWeight.bold,
+        ),
+        textDirection: config.textDirection,
+      ),
+    );
+  }
+}
+
+/// Footnote definition component ([^label]: ...)
+class MdFootnoteDef extends BlockMd {
+  @override
+  String get expString => r"^\[\^([^\]]+)\]:\s*([^\n]+)$";
+
+  @override
+  Widget build(
+    BuildContext context,
+    String text,
+    GptMarkdownConfig config,
+  ) {
+    final match = this.exp.firstMatch(text.trim());
+    final label = match?[1] ?? '';
+    final content = match?[2] ?? '';
+    final style = config.style ?? const TextStyle();
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '[$label]: ',
+            style: style.copyWith(
+              fontWeight: FontWeight.bold,
+              color: primaryColor,
+            ),
+          ),
+          Expanded(
+            child: MdWidget(context, content, false, config: config),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// GitHub Alert Callout Block Component
+class MdAlert extends BlockMd {
+  @override
+  String get expString =>
+      r"^>\s*\[!(?<type>note|tip|important|warning|caution)\](?:\s*\n(?<body>(?:>[^\n]*\n?)*))?$";
+
+  @override
+  Widget build(BuildContext context, String text, GptMarkdownConfig config) {
+    final match = this.exp.firstMatch(text.trim());
+    final typeStr = match?.namedGroup('type') ?? 'note';
+    final type = MarkdownAlertType.values.byName(typeStr.toLowerCase());
+    final rawBody = match?.namedGroup('body') ?? '';
+    final bodyLines = rawBody.split('\n').map((l) {
+      final trimmed = l.trimLeft();
+      return trimmed.startsWith('>') ? trimmed.substring(1).trimLeft() : l;
+    }).join('\n').trim();
+
+    final sheet = config.styleSheet?.alert ?? const AlertStyle();
+    final style = sheet.resolve(type, Theme.of(context).colorScheme);
+    final alertConf = config.copyWith(
+      style: (config.style ?? const TextStyle()).merge(style.textStyle),
+    );
+    final bodySpan = TextSpan(
+      children: MarkdownComponent.generate(context, bodyLines, alertConf, true),
+    );
+    final content = config.getRich(bodySpan);
+    final fontSize = (config.style?.fontSize ??
+        DefaultTextStyle.of(context).style.fontSize ??
+        14);
+    final titleStyle = (config.style ?? const TextStyle()).copyWith(
+      color: style.color,
+      fontWeight: FontWeight.w600,
+    ).merge(style.titleStyle);
+
+    final titleWidget = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (style.showIcon ?? true) ...[
+          Icon(style.icon, size: style.iconSize ?? fontSize * 1.15, color: style.color),
+          SizedBox(width: (style.title ?? '').isEmpty ? 0 : fontSize * 0.4),
+        ],
+        if ((style.title ?? '').isNotEmpty)
+          Text(style.title!, style: titleStyle),
+      ],
+    );
+
+    final hasTitle = (style.title ?? '').isNotEmpty || (style.showIcon ?? true);
+    Widget defaultAlertWidget() {
+      Widget column = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasTitle) ...[
+            titleWidget,
+            SizedBox(height: style.titleGap ?? 4),
+          ],
+          content,
+        ],
+      );
+      if (style.padding != null) {
+        column = Padding(padding: style.padding!, child: column);
+      }
+      Widget boxed = BlockQuoteWidget(
+        color: style.color ?? Colors.blue,
+        direction: config.textDirection,
+        width: style.barWidth ?? 3,
+        child: column,
+      );
+      if (style.backgroundColor != null && style.backgroundColor!.a > 0) {
+        boxed = ColoredBox(color: style.backgroundColor!, child: boxed);
+      }
+      final radius = style.borderRadius;
+      if (radius != null && radius != Radius.zero) {
+        boxed = ClipRRect(borderRadius: BorderRadius.all(radius), child: boxed);
+      }
+      if (style.margin != null) {
+        boxed = Padding(padding: style.margin!, child: boxed);
+      }
+      return Directionality(textDirection: config.textDirection, child: boxed);
+    }
+
+    late final AlertBuildDetails details;
+    details = AlertBuildDetails(
+      context: context,
+      config: config,
+      type: type,
+      style: style,
+      title: titleWidget,
+      content: content,
+      buildDefault: defaultAlertWidget,
+      buildQuote: defaultAlertWidget,
+    );
+
+    return config.alertBuilder?.call(context, details) ?? details.defaultAlert();
+  }
+}
+
 /// Display math `\[...\]` rendered as monospace source (no LaTeX engine).
 class LatexMathMultiLine extends BlockMd {
   @override
@@ -768,7 +1197,7 @@ class SourceTag extends InlineMd {
 /// Link text component
 class ATagMd extends InlineMd {
   @override
-  RegExp get exp => RegExp(r"(?<!\!)\[.*\]\([^\s]*\)");
+  RegExp get exp => RegExp(r"(?<!\!)\[.*?\]\([^\)]*?\)");
 
   @override
   InlineSpan span(
@@ -823,7 +1252,15 @@ class ATagMd extends InlineMd {
       return const TextSpan();
     }
 
-    final url = text.substring(urlStart, urlEnd).trim();
+    final rawTarget = text.substring(urlStart, urlEnd).trim();
+    String url = rawTarget;
+    String? linkTitle;
+    final titleMatch =
+        RegExp(r'''^(.*?)\s+["'](.*?)["']$''').firstMatch(rawTarget);
+    if (titleMatch != null) {
+      url = titleMatch.group(1)?.trim() ?? rawTarget;
+      linkTitle = titleMatch.group(2);
+    }
 
     var builder = config.linkBuilder;
 
@@ -840,8 +1277,8 @@ class ATagMd extends InlineMd {
     final linkHoverColor = theme.linkHoverColor;
 
     void onTap() {
-      config.onLinkTap?.call(url, linkText);
-      config.onLinkTab?.call(url, linkText);
+      config.onLinkTap?.call(url, linkTitle ?? linkText);
+      config.onLinkTab?.call(url, linkTitle ?? linkText);
     }
 
     // Use custom builder if provided
@@ -907,6 +1344,18 @@ class ATagMd extends InlineMd {
         },
       ),
     );
+
+    if (linkTitle != null && linkTitle.isNotEmpty) {
+      child = WidgetSpan(
+        alignment: child.alignment,
+        baseline: child.baseline,
+        child: Tooltip(
+          message: linkTitle,
+          child: child.child,
+        ),
+      );
+    }
+
     var textSpan = TextSpan(children: [child, ...endingSpans]);
     return textSpan;
   }

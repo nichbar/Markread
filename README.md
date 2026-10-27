@@ -105,7 +105,7 @@ flutter build web
 
 - **State management**: Riverpod 3.x (`Notifier`/`AsyncNotifier` pattern, no code generation)
 - **Navigation**: GoRouter with route parameters
-- **Markdown rendering**: `gpt_markdown` 1.2.1
+- **Markdown rendering**: `gpt_markdown` 1.4.0
 - **Design**: Material 3 with `ColorScheme` manual configuration
 
 ```

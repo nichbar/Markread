@@ -104,8 +104,13 @@ class AnchoredHTag extends HTag {
     if (match == null) return child;
 
     final hash = match.namedGroup('hash') ?? '';
-    final data = (match.namedGroup('data') ?? '').trim();
-    final level = hash.length;
+    final setextUnderline = match.namedGroup('setext_underline');
+    final data =
+        (match.namedGroup('data') ?? match.namedGroup('setext_data') ?? '')
+            .trim();
+    final level = setextUnderline != null
+        ? (setextUnderline.startsWith('=') ? 1 : 2)
+        : hash.length;
 
     // Mirror parseHeadings: levels 1–3, non-empty title.
     if (level < 1 || level > 3 || data.isEmpty) {
@@ -137,6 +142,7 @@ List<MarkdownComponent> buildAnchoredComponents(List<GlobalKey> headingKeys) {
     CodeBlockMd(),
     LatexMathMultiLine(),
     NewLines(),
+    MdAlert(),
     BlockQuote(),
     TableMd(),
     AnchoredHTag(headingKeys: headingKeys, sequential: true),
@@ -146,6 +152,7 @@ List<MarkdownComponent> buildAnchoredComponents(List<GlobalKey> headingKeys) {
     CheckBoxMd(),
     HrLine(),
     IndentMd(),
+    MdFootnoteDef(),
   ];
 }
 
@@ -161,6 +168,7 @@ List<MarkdownComponent> buildAnchoredComponentsForBlock({
     CodeBlockMd(),
     LatexMathMultiLine(),
     NewLines(),
+    MdAlert(),
     BlockQuote(),
     TableMd(),
     AnchoredHTag(
@@ -174,6 +182,7 @@ List<MarkdownComponent> buildAnchoredComponentsForBlock({
     CheckBoxMd(),
     HrLine(),
     IndentMd(),
+    MdFootnoteDef(),
   ];
 }
 
@@ -194,6 +203,10 @@ List<MarkdownComponent> buildAnchoredInlineComponents(
     UnderLineMd(),
     LatexMath(),
     LatexMathMultiLine(),
+    MdHighlight(),
+    MdSuperscript(),
+    MdSubscript(),
+    MdFootnoteRef(),
     HighlightedText(),
     SourceTag(),
   ];
